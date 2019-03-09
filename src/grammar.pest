@@ -1,0 +1,12 @@
+number = @{ '0'..'9'+ }
+operator = _{ add | subtract | multiply | divide | power }
+    add      = { "+" }
+    subtract = { "-" }
+    multiply = { "*" }
+    divide   = { "/" }
+    power    = { "^" }
+expr = { number | "(" ~ operator ~ expr+ ~ ")"}
+statement = _{ expr }
+
+WHITESPACE = _{ " " }
+COMMENT = _{ ";" ~ ANY }
