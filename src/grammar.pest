@@ -7,6 +7,8 @@ operator = _{ add | subtract | multiply | divide | power }
     power    = { "^" }
 expr = { number | "(" ~ operator ~ expr+ ~ ")"}
 statement = _{ expr }
+repl_line = _{ statement | COMMENT }
 
 WHITESPACE = _{ " " }
-COMMENT = _{ ";" ~ ANY ~ NEWLINE }
+COMMENT = @{ ";" ~ ANY* }
+atmosphere = _{ WHITESPACE | COMMENT }

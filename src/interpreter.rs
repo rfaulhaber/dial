@@ -14,7 +14,7 @@ pub fn eval_statement(input: &str) {
 }
 
 fn eval(input: &str, rule: Rule) {
-	let parse_result = match DialParser::parse(Rule::statement, input) {
+	let parse_result = match DialParser::parse(Rule::repl_line, input) {
 		Ok(result) => result,
 		Err(err) => {
 			// TODO clean up
