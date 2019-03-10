@@ -9,4 +9,4 @@ expr = { number | "(" ~ operator ~ expr+ ~ ")"}
 statement = _{ expr }
 
 WHITESPACE = _{ " " }
-COMMENT = _{ ";" ~ ANY }
+COMMENT = _{ ";" ~ ANY ~ NEWLINE }
