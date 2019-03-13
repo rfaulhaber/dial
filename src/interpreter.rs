@@ -1,20 +1,31 @@
 use super::parser::{DialParser, Rule};
+use pest::iterators::Pair;
 use pest::Parser;
 
-pub enum EvalResult {
+struct Ast;
+
+pub enum DialType {
 	Integer(u64),
 	Float(f64),
-	Str(String),
+	String(String),
 	Nil,
 	Err(String),
 }
 
-pub fn eval_statement(input: &str) {
-	eval(input, Rule::statement)
+// TODO implement
+// impl<'a> From<Pair<'a, Rule>> for DialType {
+// }
+
+struct Stack;
+
+// TODO return DialType
+pub fn eval_line(input: &str) {
+	eval(input, Rule::repl_line)
 }
 
+// TODO return DialType
 fn eval(input: &str, rule: Rule) {
-	let parse_result = match DialParser::parse(Rule::repl_line, input) {
+	let parse_result = match DialParser::parse(rule, input) {
 		Ok(result) => result,
 		Err(err) => {
 			// TODO clean up
@@ -26,10 +37,10 @@ fn eval(input: &str, rule: Rule) {
 	for pair in parse_result {
 		for inner_pair in pair.into_inner() {
 			let rule = inner_pair.as_rule();
-			println!("rule: {:?}", rule);
+			println!("inner pair: {:?}", inner_pair);
 			match rule {
 				Rule::add => {
-					println!("add");
+					println!("add: {:?}", inner_pair);
 				}
 				Rule::subtract => {
 					println!("subtract");

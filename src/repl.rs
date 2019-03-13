@@ -19,7 +19,7 @@ impl Repl {
 
 			match readline {
 				Ok(line) => {
-					interpreter::eval_statement(line.as_str());
+					interpreter::eval_line(line.as_str());
 				}
 				Err(ReadlineError::Interrupted) => {
 					println!("CTRL-C");
