@@ -1,25 +1,21 @@
 // TODO see this for inspiration https://www.scheme.com/tspl2d/grammar.html
-integer = @{
-    "-"?
-    ~ ("0" | ASCII_NONZERO_DIGIT ~ ASCII_DIGIT*)
-}
+int = @{ "-"? ~ ASCII_DIGIT+ }
+float = @{ "-"? ~ ASCII_DIGIT* ~ "." ~ ASCII_DIGIT+ }
 
-float = @{
-    "-"?
-    ~ ("0" | ASCII_NONZERO_DIGIT ~ ASCII_DIGIT*)
-    ~ ("." ~ ASCII_DIGIT*)?
-}
-
-// TODO resolve
-number = { integer | float }
+number = _{ float | int }
 
 operator = _{ add | subtract | multiply | divide | power }
-    add      = { "+" }
-    subtract = { "-" }
-    multiply = { "*" }
-    divide   = { "/" }
-    power    = { "^" }
-expr = { number | "(" ~ operator ~ expr+ ~ ")"}
+add      = { "+" }
+subtract = { "-" }
+multiply = { "*" }
+divide   = { "/" }
+power    = { "^" }
+
+nil = { "nil" }
+
+atom = _{ nil | number }
+
+expr = { atom | "(" ~ operator ~ expr+ ~ ")"}
 statement = _{ expr }
 repl_line = _{ statement | COMMENT }
 
