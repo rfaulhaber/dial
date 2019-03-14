@@ -3,6 +3,7 @@ use pest::error;
 use pest::iterators::Pair;
 use pest::Parser;
 
+#[derive(Debug)]
 pub enum DialValue {
 	Integer(u64),
 	Float(f64),
@@ -16,8 +17,8 @@ pub enum DialValue {
 // }
 
 // TODO return DialType
-pub fn eval_line(input: &str) {
-	eval(input, Rule::repl_line).unwrap();
+pub fn eval_line(input: &str) -> Result<DialValue, error::Error<Rule>> {
+	eval(input, Rule::repl_line)
 }
 
 // TODO return DialType
@@ -29,6 +30,10 @@ fn eval(input: &str, rule: Rule) -> Result<DialValue, error::Error<Rule>> {
 	for pair in parse_result {
 		println!("pair: {:?}", pair);
 		println!("as rule: {:?}", pair.as_rule());
+		match pair.as_rule() {
+			Rule::COMMENT | Rule::nil => return Ok(DialValue::Nil),
+			_ => unimplemented!(),
+		}
 	}
 
 	unimplemented!();

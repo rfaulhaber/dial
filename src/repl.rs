@@ -1,4 +1,5 @@
 use super::interpreter;
+use super::interpreter::DialValue;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 use std::io::Write;
@@ -19,7 +20,17 @@ impl Repl {
 
 			match readline {
 				Ok(line) => {
-					interpreter::eval_line(line.as_str());
+					if line.is_empty() {
+						continue;
+					}
+
+					match interpreter::eval_line(line.as_str()) {
+						Ok(value) => match value {
+							DialValue::Nil => println!("nil"),
+							_ => println!("unimplemented! value: {:?}", value),
+						},
+						Err(err) => println!("error encountered: {:?}", err),
+					};
 				}
 				Err(ReadlineError::Interrupted) => {
 					println!("CTRL-C");
