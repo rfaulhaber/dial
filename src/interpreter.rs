@@ -1,10 +1,9 @@
 use super::parser::{DialParser, Rule};
+use pest::error;
 use pest::iterators::Pair;
 use pest::Parser;
 
-struct Ast;
-
-pub enum DialType {
+pub enum DialValue {
 	Integer(u64),
 	Float(f64),
 	String(String),
@@ -16,49 +15,30 @@ pub enum DialType {
 // impl<'a> From<Pair<'a, Rule>> for DialType {
 // }
 
-struct Stack;
-
 // TODO return DialType
 pub fn eval_line(input: &str) {
-	eval(input, Rule::repl_line)
+	eval(input, Rule::repl_line).unwrap();
 }
 
 // TODO return DialType
-fn eval(input: &str, rule: Rule) {
-	let parse_result = match DialParser::parse(rule, input) {
-		Ok(result) => result,
-		Err(err) => {
-			// TODO clean up
-			println!("unexpected error: {:?}", err);
-			return;
-		}
-	};
+fn eval(input: &str, rule: Rule) -> Result<DialValue, error::Error<Rule>> {
+	let parse_result = DialParser::parse(rule, input)?;
+
+	let stack: Vec<DialValue> = Vec::new();
 
 	for pair in parse_result {
-		for inner_pair in pair.into_inner() {
-			let rule = inner_pair.as_rule();
-			println!("inner pair: {:?}", inner_pair);
-			match rule {
-				Rule::add => {
-					println!("add: {:?}", inner_pair);
-				}
-				Rule::subtract => {
-					println!("subtract");
-				}
-				Rule::multiply => {
-					println!("multiply");
-				}
-				Rule::divide => {
-					println!("divide");
-				}
-				Rule::power => {
-					println!("power");
-				}
-				Rule::expr => {
-					println!("expr");
-				}
-				_ => unreachable!(),
-			}
-		}
+		println!("pair: {:?}", pair);
+		println!("as rule: {:?}", pair.as_rule());
 	}
+
+	unimplemented!();
 }
+
+// fn parse_value(pair: Pair<Rule>) -> DialValue {
+
+// 	// match pair.as_rule() {
+// 	// 	Rule::expr => {}
+// 	// 	Rule::number => {}
+// 	// 	_ => unreachable!(),
+// 	// }
+// }
