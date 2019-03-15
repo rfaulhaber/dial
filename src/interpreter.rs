@@ -26,15 +26,13 @@ pub fn eval_line(input: &str) -> Result<DialValue, error::Error<Rule>> {
 fn eval(input: &str, rule: Rule) -> Result<DialValue, error::Error<Rule>> {
 	let pair = DialParser::parse(rule, input)?.next().unwrap();
 
-	let mut stack: Vec<Rule> = Vec::new();
-
 	eprintln!("pair: {:?}", pair);
 	eprintln!("as rule: {:?}", pair.as_rule());
+
 	let val = match pair.as_rule() {
-		Rule::add => eval_add(pair.into_inner()),
-		Rule::subtract => eval_sub(pair.into_inner()),
-		Rule::float => DialValue::Float(pair.as_str().parse().unwrap()),
-		Rule::int => DialValue::Integer(pair.as_str().parse().unwrap()),
+		Rule::int => DialValue::Integer(pair.as_str().parse::<i64>().unwrap()),
+		Rule::float => DialValue::Float(pair.as_str().parse::<f64>().unwrap()),
+		Rule::expr => eval_expr(pair),
 		Rule::COMMENT | Rule::nil => DialValue::Nil,
 		_ => unimplemented!(),
 	};
@@ -43,24 +41,39 @@ fn eval(input: &str, rule: Rule) -> Result<DialValue, error::Error<Rule>> {
 }
 
 fn eval_expr(pair: Pair<Rule>) -> DialValue {
-	match pair.as_rule() {
-		Rule::add => eval_add(pair.into_inner()),
+	let pair_str = pair.as_str();
+	let mut inner = pair.into_inner();
+	let first = inner.next().unwrap();
+
+	match first.as_rule() {
+		Rule::int => DialValue::Integer(pair_str.parse::<i64>().unwrap()),
+		Rule::float => DialValue::Float(pair_str.parse::<f64>().unwrap()),
+		Rule::add => {
+			let mut vals = inner.map(eval_expr);
+			let all_int = vals.clone().all(|value| match value {
+				DialValue::Integer(_) => true,
+				_ => false,
+			});
+
+			// TODO clean, break into more functions
+			if all_int {
+				let ret: i64 = vals.fold(0, |sum, val| match val {
+					DialValue::Integer(int) => sum + int,
+					_ => unreachable!(),
+				});
+
+				return DialValue::Integer(ret);
+			} else {
+				let ret: f64 = vals.fold(0.0, |sum, val| match val {
+					DialValue::Integer(int) => sum + int as f64,
+					DialValue::Float(float) => sum + float,
+					_ => unreachable!(),
+				});
+
+				return DialValue::Float(ret);
+			}
+		}
+		// Rule::expr => eval_expr(inner),
 		_ => unimplemented!(),
 	}
-}
-
-fn eval_add(pairs: Pairs<Rule>) -> DialValue {
-	unimplemented!();
-}
-
-fn eval_sub(pairs: Pairs<Rule>) -> DialValue {
-	unimplemented!();
-}
-
-fn eval_mult(pairs: Pairs<Rule>) -> DialValue {
-	unimplemented!();
-}
-
-fn eval_div(pairs: Pairs<Rule>) -> DialValue {
-	unimplemented!();
 }

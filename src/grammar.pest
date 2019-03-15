@@ -4,12 +4,11 @@ float = @{ "-"? ~ ASCII_DIGIT* ~ "." ~ ASCII_DIGIT+ }
 
 number = _{ float | int }
 
-operator = _{ add | subtract | multiply | divide | power }
+operator = _{ add | subtract | multiply | divide }
 add      = { "+" }
 subtract = { "-" }
 multiply = { "*" }
 divide   = { "/" }
-power    = { "^" }
 
 nil = { "nil" }
 
