@@ -4,20 +4,19 @@ float = @{ "-"? ~ ASCII_DIGIT* ~ "." ~ ASCII_DIGIT+ }
 
 number = _{ float | int }
 
-operator = _{ add | subtract | multiply | divide }
+operator = _{ add | sub | mul | div }
 add      = { "+" }
-subtract = { "-" }
-multiply = { "*" }
-divide   = { "/" }
+sub 	 = { "-" }
+mul 	 = { "*" }
+div      = { "/" }
 
 nil = { "nil" }
 
 atom = _{ nil | number }
 
-expr = { number | "(" ~ operator ~ expr+ ~ ")"}
+expr = { atom | "(" ~ operator ~ expr+ ~ ")"}
 statement = _{ expr }
 repl_line = _{ atom | statement | COMMENT }
 
 WHITESPACE = _{ " " | "\t" }
 COMMENT = @{ ";" ~ ANY* }
-atmosphere = _{ WHITESPACE | COMMENT }

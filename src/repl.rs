@@ -20,24 +20,14 @@ impl Repl {
 
 			match readline {
 				Ok(line) => {
-					if line.is_empty() {
-						continue;
+					if !line.is_empty() {
+						match interpreter::eval_line(line.as_str()) {
+							Ok(value) => print_val(value),
+							Err(err) => println!("error encountered: {:?}", err),
+						};
 					}
-
-					match interpreter::eval_line(line.as_str()) {
-						Ok(value) => match value {
-							DialValue::Nil => println!("nil"),
-							_ => println!("unimplemented! value: {:?}", value),
-						},
-						Err(err) => println!("error encountered: {:?}", err),
-					};
 				}
-				Err(ReadlineError::Interrupted) => {
-					println!("CTRL-C");
-					break;
-				}
-				Err(ReadlineError::Eof) => {
-					println!("CTRL-D");
+				Err(ReadlineError::Interrupted) | Err(ReadlineError::Eof) => {
 					break;
 				}
 				Err(err) => {
@@ -50,5 +40,14 @@ impl Repl {
 
 	pub fn close(&self) {
 		unimplemented!();
+	}
+}
+
+fn print_val(val: DialValue) {
+	match val {
+		DialValue::Integer(int) => println!("{}", int),
+		DialValue::Float(float) => println!("{}", float),
+		DialValue::String(s) => println!("{}", s),
+		DialValue::Nil => println!("nil"),
 	}
 }
