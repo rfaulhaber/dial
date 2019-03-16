@@ -159,6 +159,7 @@ fn eval_expr(pair: Pair<Rule>) -> DialValue {
 		Rule::div => inner
 			.map(eval_expr)
 			.fold(DialValue::Nil, |sum, val| sum / val),
+		Rule::nil => DialValue::Nil,
 
 		// Rule::expr => eval_expr(inner),
 		_ => unimplemented!(),
