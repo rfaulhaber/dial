@@ -9,6 +9,7 @@ extern crate env_logger;
 mod interpreter;
 mod parser;
 mod repl;
+mod values;
 
 use repl::Repl;
 
