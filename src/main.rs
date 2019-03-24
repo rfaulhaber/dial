@@ -6,6 +6,7 @@ extern crate rustyline;
 extern crate log;
 extern crate env_logger;
 
+mod env;
 mod interpreter;
 mod parser;
 mod repl;

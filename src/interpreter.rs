@@ -28,6 +28,7 @@ fn eval(input: &str, rule: Rule) -> Result<Vec<DialValue>, error::Error<Rule>> {
 			Rule::int => DialValue::Integer(pair.as_str().parse::<i64>().unwrap()),
 			Rule::float => DialValue::Float(pair.as_str().parse::<f64>().unwrap()),
 			Rule::expr => eval_expr(pair),
+			Rule::symbol => DialValue::String(String::from(pair.as_span().as_str())),
 			Rule::COMMENT | Rule::nil => DialValue::Nil,
 			_ => unimplemented!(),
 		};

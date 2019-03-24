@@ -12,7 +12,14 @@ div      = { "/" }
 
 nil = { "nil" }
 
-atom = _{ nil | number }
+quote = _{ "'" }
+
+list = { quote ~ "(" ~ atom+ ~ ")" }
+list_special = {"def" | "let"}
+
+symbol = @{ ASCII_ALPHA ~ ASCII_ALPHANUMERIC+? }
+
+atom = _{ nil | number | symbol }
 
 expr = { atom | "(" ~ operator ~ expr+ ~ ")"}
 repl_line = _{ atom+ | expr+ | COMMENT }

@@ -1,7 +1,7 @@
 use std::iter::Sum;
 use std::ops::{Add, Div, Mul, Sub};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum DialValue {
 	Integer(i64),
 	Float(f64),
