@@ -1,35 +1,41 @@
 use super::parser::{DialParser, Rule};
+use super::values::DialValue;
 use log::Level;
 use pest::error;
 use pest::iterators::Pair;
 use pest::Parser;
-use super::values::DialValue;
 
 // TODO implement
 // impl<'a> From<Pair<'a, Rule>> for DialType {
 // }
 
-pub fn eval_line(input: &str) -> Result<DialValue, error::Error<Rule>> {
+pub fn eval_line(input: &str) -> Result<Vec<DialValue>, error::Error<Rule>> {
 	eval(input, Rule::repl_line)
 }
 
-fn eval(input: &str, rule: Rule) -> Result<DialValue, error::Error<Rule>> {
-	let pair = DialParser::parse(rule, input)?.next().unwrap();
+fn eval(input: &str, rule: Rule) -> Result<Vec<DialValue>, error::Error<Rule>> {
+	let parsed_input = DialParser::parse(rule, input)?;
 
-	if log_enabled!(Level::Info) {
-		info!("pair: {:?}", pair);
-		info!("as rule: {:?}", pair.as_rule());
+	let mut values = Vec::new();
+
+	for pair in parsed_input {
+		if log_enabled!(Level::Info) {
+			info!("pair: {:?}", pair);
+			info!("as rule: {:?}", pair.as_rule());
+		}
+
+		let val = match pair.as_rule() {
+			Rule::int => DialValue::Integer(pair.as_str().parse::<i64>().unwrap()),
+			Rule::float => DialValue::Float(pair.as_str().parse::<f64>().unwrap()),
+			Rule::expr => eval_expr(pair),
+			Rule::COMMENT | Rule::nil => DialValue::Nil,
+			_ => unimplemented!(),
+		};
+
+		values.push(val);
 	}
 
-	let val = match pair.as_rule() {
-		Rule::int => DialValue::Integer(pair.as_str().parse::<i64>().unwrap()),
-		Rule::float => DialValue::Float(pair.as_str().parse::<f64>().unwrap()),
-		Rule::expr => eval_expr(pair),
-		Rule::COMMENT | Rule::nil => DialValue::Nil,
-		_ => unimplemented!(),
-	};
-
-	Ok(val)
+	Ok(values)
 }
 
 fn eval_expr(pair: Pair<Rule>) -> DialValue {

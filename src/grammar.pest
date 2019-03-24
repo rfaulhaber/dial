@@ -15,8 +15,7 @@ nil = { "nil" }
 atom = _{ nil | number }
 
 expr = { atom | "(" ~ operator ~ expr+ ~ ")"}
-statement = _{ expr }
-repl_line = _{ atom | statement | COMMENT }
+repl_line = _{ atom+ | expr+ | COMMENT }
 
 WHITESPACE = _{ " " | "\t" }
 COMMENT = @{ ";" ~ ANY* }

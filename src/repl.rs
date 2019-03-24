@@ -1,16 +1,13 @@
 use super::interpreter;
-use super::interpreter::DialValue;
+use super::values::DialValue;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
-use std::io::Write;
 
-pub struct Repl {
-	running: bool,
-}
+pub struct Repl;
 
 impl Repl {
 	pub fn new() -> Repl {
-		Repl { running: false }
+		Repl {}
 	}
 
 	pub fn start(&self) {
@@ -22,7 +19,11 @@ impl Repl {
 				Ok(line) => {
 					if !line.is_empty() {
 						match interpreter::eval_line(line.as_str()) {
-							Ok(value) => print_val(value),
+							Ok(values) => {
+								for value in values {
+									print_val(value);
+								}
+							}
 							Err(err) => println!("error encountered: {:?}", err),
 						};
 					}
