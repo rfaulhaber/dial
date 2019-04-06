@@ -20,8 +20,7 @@ fn eval(input: &str, rule: Rule) -> Result<Vec<DialValue>, error::Error<Rule>> {
 
 	for pair in parsed_input {
 		if log_enabled!(Level::Info) {
-			info!("pair: {:?}", pair);
-			info!("as rule: {:?}", pair.as_rule());
+			info!("found rule: {:?}", pair.as_rule());
 		}
 
 		let val = match pair.as_rule() {

@@ -15,9 +15,9 @@ nil = { "nil" }
 quote = _{ "'" }
 
 list = { quote ~ "(" ~ atom+ ~ ")" }
-list_special = {"def" | "let"}
+keywords = {"def" | "let"}
 
-symbol = @{ ASCII_ALPHA ~ ASCII_ALPHANUMERIC+? }
+symbol = @{ ASCII_ALPHA ~ ('a'..'z' | 'A'..'Z' | '0'..'9' | "-" | "_" | "!" | "$" | "%" | "*" | "^" | "+")+? }
 
 atom = _{ nil | number | symbol }
 
