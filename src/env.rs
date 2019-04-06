@@ -1,134 +1,103 @@
 use super::values::DialValue;
+use std::cell::RefCell;
 use std::collections::HashMap;
+use std::convert::AsRef;
 
-#[derive(Debug)]
-// TODO figure out how to solve this
-// NOTE this might help https://github.com/kanaka/mal/blob/master/rust/env.rs
+#[derive(Clone, Debug)]
 pub struct Env {
-	scopes: Vec<Scope>,
-	current: usize,
+	symbol_map: RefCell<HashMap<String, DialValue>>,
+	outer: Option<Box<Env>>,
 }
 
 impl Env {
 	pub fn new() -> Env {
 		Env {
-			scopes: vec![Scope::new()],
-			current: 0,
+			symbol_map: RefCell::new(HashMap::new()),
+			outer: None,
 		}
 	}
 
-	pub fn push_stack(mut self) -> usize {
-		self.scopes.push(Scope {
-			parent_scope: self.current,
-			layer: self.scopes.len(),
-			data: HashMap::new(),
-		});
-
-		self.current = self.scopes.len();
-
-		self.scopes.len()
+	pub fn set(&self, symbol: &String, value: DialValue) {
+		self.symbol_map.borrow_mut().insert(symbol.clone(), value);
 	}
 
-	pub fn set(&mut self, key: String, value: DialValue) {
-		self.scopes[self.current].data.insert(key, value);
-	}
+	pub fn get(&self, symbol: &String) -> Option<DialValue> {
+		match self.find(symbol) {
+			Some(env) => {
+				let symbol_map = env.symbol_map.borrow();
+				let val = symbol_map.get(symbol);
 
-	pub fn find(&mut self, key: String) -> Option<&Scope> {
-		if self.scopes[self.current].data.contains_key(&key) {
-			return Some(&self.scopes[self.current]);
-		}
-
-		for i in self.current..0 {
-			match self.scopes.get(i) {
-				Some(scope) => {
-					if scope.data.contains_key(&key) {
-						return Some(&scope);
-					}
-				}
-				None => continue,
+				val.cloned()
 			}
+			None => None,
+		}
+	}
+
+	fn find(&self, symbol: &String) -> Option<&Env> {
+		if self.contains_symbol(&symbol) {
+			return Some(self);
 		}
 
-		None
+		match &self.outer {
+			Some(env) => env.find(symbol),
+			None => None,
+		}
 	}
 
-	pub fn get(self, key: String) -> Option<DialValue> {
-		unimplemented!();
-	}
-
-	fn current_scope(&self) -> &Scope {
-		&self.scopes[self.current]
+	fn contains_symbol(&self, symbol: &String) -> bool {
+		self.symbol_map.borrow().contains_key(symbol)
 	}
 }
 
-#[derive(Debug, PartialEq, Clone)]
-pub struct Scope {
-	parent_scope: usize,
-	layer: usize,
-	data: HashMap<String, DialValue>,
-}
-
-impl Scope {
-	fn new() -> Scope {
-		Scope {
-			parent_scope: 0,
-			layer: 0,
-			data: HashMap::new(),
-		}
-	}
-
-	fn add_scope(self) -> Scope {
-		Scope {
-			parent_scope: self.layer,
-			layer: self.layer + 1,
-			data: HashMap::new(),
-		}
+impl AsRef<Env> for Env {
+	fn as_ref(&self) -> &Self {
+		self
 	}
 }
 
 #[cfg(test)]
-mod tests {
+mod test {
 	use super::*;
 
 	#[test]
-	fn set_should_set_value_in_scope() {
-		let mut env = Env::new();
-		let key = String::from("x");
+	fn test_contains_key() {
+		let env = Env::new();
 
-		env.set(key.clone(), DialValue::Integer(2));
+		env.set(&String::from("three"), DialValue::Integer(3));
 
-		assert!(env.scopes[env.current].data.contains_key(&key));
+		assert!(env.contains_symbol(&String::from("three")));
 	}
 
 	#[test]
-	fn find_should_get_current_scope() {
-		let mut env = Env::new();
-		let key = String::from("x");
+	fn test_find() {
+		let outer_env = Env::new();
+		let three_symbol = &String::from("three");
+		outer_env.set(three_symbol, DialValue::Integer(3));
 
-		let val = DialValue::Integer(2);
+		let boxed_outer = Box::new(outer_env);
 
-		env.set(key.clone(), val);
+		let mut inner_env = Env::new();
+		inner_env.outer = Some(boxed_outer);
 
-		let result = env.find(key);
+		let ret_env = inner_env.find(three_symbol);
 
-		assert!(result.is_some());
-		assert_eq!(env.current_scope(), result.unwrap());
+		assert!(ret_env.is_some());
+		assert!(ret_env.unwrap().contains_symbol(three_symbol));
 	}
 
 	#[test]
-	fn find_should_get_parent_scope() {
-		let mut env = Env::new();
-		let key = String::from("x");
+	fn test_get() {
+		let outer_env = Env::new();
+		let three_symbol = &String::from("three");
+		outer_env.set(three_symbol, DialValue::Integer(3));
 
-		let val = DialValue::Integer(2);
+		let boxed_outer = Box::new(outer_env);
 
-		env.set(key.clone(), val);
+		let mut inner_env = Env::new();
+		inner_env.outer = Some(boxed_outer);
 
-		let result = env.find(key);
+		let ret_val = inner_env.get(three_symbol);
 
-		env.push_stack();
-
-		assert!(result.is_some());
-		assert_eq!(env.scopes[env.current], *result.unwrap());
+		assert_eq!(ret_val, Some(DialValue::Integer(3)));
 	}
 }
