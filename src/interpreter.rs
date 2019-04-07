@@ -29,7 +29,10 @@ fn eval(input: &str, rule: Rule) -> Result<Vec<DialValue>, error::Error<Rule>> {
 			Rule::expr => eval_expr(pair),
 			Rule::symbol => DialValue::String(String::from(pair.as_span().as_str())),
 			Rule::COMMENT | Rule::nil => DialValue::Nil,
-			_ => unimplemented!(),
+			_ => {
+				info!("rule not implemented yet");
+				DialValue::Nil
+			}
 		};
 
 		values.push(val);

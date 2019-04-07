@@ -15,14 +15,25 @@ nil = { "nil" }
 quote = _{ "'" }
 
 list = { quote ~ "(" ~ atom+ ~ ")" }
-keywords = {"def" | "let"}
 
-symbol = @{ ASCII_ALPHA ~ ('a'..'z' | 'A'..'Z' | '0'..'9' | "-" | "_" | "!" | "$" | "%" | "*" | "^" | "+")+? }
+list_specials = _{ let_key | def_key }
+let_key = { "let" }
+def_key = { "def" }
+
+symbol = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "-" | "_" | "!" | "$" | "%" | "*" | "^" | "+")+? }
 
 atom = _{ nil | number | symbol }
 
 expr = { atom | "(" ~ operator ~ expr+ ~ ")"}
-repl_line = _{ atom+ | expr+ | COMMENT }
+
+def_expr = { "(" ~ def_key  ~ symbol ~ expr ~ ")" }
+let_bind = { "(" ~ let_key ~ var_bind ~ expr+ ~ ")" }
+
+var_bind = { "(" ~ symbol ~ expr ~ ")" }
+
+form = _{ atom+ | expr+ | def_expr+ | let_bind+ | COMMENT }
+
+repl_line = _{ form }
 
 WHITESPACE = _{ " " | "\t" }
 COMMENT = @{ ";" ~ ANY* }
