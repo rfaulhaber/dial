@@ -1,4 +1,4 @@
-use super::interpreter;
+use super::interpreter::Interpreter;
 use super::values::DialValue;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
@@ -12,13 +12,14 @@ impl Repl {
 
 	pub fn start(&self) {
 		let mut rl = Editor::<()>::new();
+		let interpreter = Interpreter::new();
 		loop {
 			let readline = rl.readline("user=> ");
 
 			match readline {
 				Ok(line) => {
 					if !line.is_empty() {
-						match interpreter::eval_line(line.as_str()) {
+						match interpreter.eval_repl(line.as_str()) {
 							Ok(values) => {
 								for value in values {
 									print_val(value);

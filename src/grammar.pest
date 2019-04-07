@@ -17,14 +17,14 @@ quote = _{ "'" }
 list = { quote ~ "(" ~ atom+ ~ ")" }
 
 list_specials = _{ let_key | def_key }
-let_key = { "let" }
-def_key = { "def" }
+let_key = _{ "let" }
+def_key = _{ "def" }
 
 symbol = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "-" | "_" | "!" | "$" | "%" | "*" | "^" | "+")+? }
 
 atom = _{ nil | number | symbol }
 
-expr = { atom | "(" ~ operator ~ expr+ ~ ")"}
+expr = { atom | symbol | "(" ~ operator ~ expr+ ~ ")"}
 
 def_expr = { "(" ~ def_key  ~ symbol ~ expr ~ ")" }
 let_bind = { "(" ~ let_key ~ var_bind ~ expr+ ~ ")" }
