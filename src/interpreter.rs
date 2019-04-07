@@ -112,3 +112,26 @@ impl Interpreter {
 		}
 	}
 }
+
+#[cfg(test)]
+mod test {
+	use super::*;
+
+	#[test]
+	fn test_eval_add_expr() {
+		let interp = Interpreter::new();
+
+		let result = interp.eval("(+ 1 2)", Rule::expr);
+
+		assert_eq!(DialValue::Integer(3), *result.unwrap().first().unwrap());
+	}
+
+	#[test]
+	fn test_eval_add_indef_expr() {
+		let interp = Interpreter::new();
+
+		let result = interp.eval("(+ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15)", Rule::expr);
+
+		assert_eq!(DialValue::Integer(120), *result.unwrap().first().unwrap());
+	}
+}
