@@ -1,7 +1,6 @@
 use super::values::DialValue;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::convert::AsRef;
 
 #[derive(Clone, Debug)]
 pub struct Env {
@@ -23,12 +22,7 @@ impl Env {
 
 	pub fn get(&self, symbol: &String) -> Option<DialValue> {
 		match self.find(symbol) {
-			Some(env) => {
-				let symbol_map = env.symbol_map.borrow();
-				let val = symbol_map.get(symbol);
-
-				val.cloned()
-			}
+			Some(env) => env.symbol_map.borrow().get(symbol).cloned(),
 			None => None,
 		}
 	}
@@ -46,12 +40,6 @@ impl Env {
 
 	fn contains_symbol(&self, symbol: &String) -> bool {
 		self.symbol_map.borrow().contains_key(symbol)
-	}
-}
-
-impl AsRef<Env> for Env {
-	fn as_ref(&self) -> &Self {
-		self
 	}
 }
 
