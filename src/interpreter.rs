@@ -19,11 +19,11 @@ impl Interpreter {
 		Interpreter { env: Env::new() }
 	}
 
-	pub fn eval_repl(&self, input: &str) -> Result<Vec<DialValue>, error::Error<Rule>> {
+	pub fn eval_repl(&mut self, input: &str) -> Result<Vec<DialValue>, error::Error<Rule>> {
 		self.eval(input, Rule::repl_line)
 	}
 
-	pub fn eval(&self, input: &str, rule: Rule) -> Result<Vec<DialValue>, error::Error<Rule>> {
+	pub fn eval(&mut self, input: &str, rule: Rule) -> Result<Vec<DialValue>, error::Error<Rule>> {
 		let parsed_input = DialParser::parse(rule, input)?;
 
 		let mut values = Vec::new();
@@ -79,8 +79,30 @@ impl Interpreter {
 		expr_value
 	}
 
-	fn eval_let_bind(&self, pair: Pair<Rule>) -> DialValue {
-		unimplemented!();
+	fn eval_let_bind(&mut self, pair: Pair<Rule>) -> DialValue {
+		self.push_scope();
+
+		// TODO dedupe code
+		let mut inner = pair.into_inner();
+		let symbol = inner.next().unwrap().as_str();
+
+		if log_enabled!(Level::Info) {
+			info!("defining symbol in let scope: {}", symbol);
+		}
+
+		let expr_value = self.eval_expr(inner.next().unwrap()); // this could be better
+
+		self.env.set(&String::from(symbol), expr_value.clone());
+
+		if log_enabled!(Level::Info) {
+			info!("symbol defined as: {:?}", expr_value.clone());
+		}
+
+		let result = self.eval_expr(inner.next().unwrap()); // TODO handle errors
+
+		self.pop_scope();
+
+		result
 	}
 
 	fn eval_expr(&self, pair: Pair<Rule>) -> DialValue {
@@ -111,6 +133,17 @@ impl Interpreter {
 			_ => unimplemented!(),
 		}
 	}
+
+	fn push_scope(&mut self) {
+		self.env = self.env.push_scope();
+	}
+
+	fn pop_scope(&mut self) {
+		self.env = match self.env.pop_scope() {
+			Some(scope) => scope,
+			None => Env::new(),
+		}
+	}
 }
 
 #[cfg(test)]
@@ -119,7 +152,7 @@ mod test {
 
 	#[test]
 	fn test_eval_add_expr() {
-		let interp = Interpreter::new();
+		let mut interp = Interpreter::new();
 
 		let result = interp.eval("(+ 1 2)", Rule::expr);
 
@@ -128,10 +161,30 @@ mod test {
 
 	#[test]
 	fn test_eval_add_indef_expr() {
-		let interp = Interpreter::new();
+		let mut interp = Interpreter::new();
 
 		let result = interp.eval("(+ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15)", Rule::expr);
 
 		assert_eq!(DialValue::Integer(120), *result.unwrap().first().unwrap());
+	}
+
+	#[test]
+	fn test_let_expr_basic() {
+		let mut interp = Interpreter::new();
+
+		let result = interp.eval("(let (c 2) c)", Rule::let_bind);
+
+		assert_eq!(DialValue::Integer(2), *result.unwrap().first().unwrap());
+	}
+
+	#[test]
+	fn test_def_expr_basic() {
+		let mut interp = Interpreter::new();
+
+		let assignment = interp.eval("(def a 2)", Rule::def_expr);
+		assert_eq!(DialValue::Integer(2), *assignment.unwrap().first().unwrap());
+
+		let result = interp.eval("(def b (+ a 2))", Rule::def_expr);
+		assert_eq!(DialValue::Integer(4), *result.unwrap().first().unwrap());
 	}
 }

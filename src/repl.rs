@@ -12,7 +12,7 @@ impl Repl {
 
 	pub fn start(&self) {
 		let mut rl = Editor::<()>::new();
-		let interpreter = Interpreter::new();
+		let mut interpreter = Interpreter::new();
 		loop {
 			let readline = rl.readline("user=> ");
 

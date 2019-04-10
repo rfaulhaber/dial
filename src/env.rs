@@ -33,6 +33,20 @@ impl Env {
 		}
 	}
 
+	pub fn push_scope(&self) -> Env {
+		let mut inner_env = Env::new();
+		inner_env.outer = Some(Box::new(self.clone()));
+
+		inner_env
+	}
+
+	pub fn pop_scope(&self) -> Option<Env> {
+		match &self.outer {
+			Some(scope) => Some(*scope.to_owned()),
+			None => None,
+		}
+	}
+
 	fn find(&self, symbol: &String) -> Option<&Env> {
 		if self.contains_symbol(&symbol) {
 			return Some(self);

@@ -26,10 +26,11 @@ atom = _{ nil | number | symbol }
 
 expr = { atom | symbol | "(" ~ operator ~ expr+ ~ ")"}
 
+// TODO should these be recursive?
 def_expr = { "(" ~ def_key  ~ symbol ~ expr ~ ")" }
 let_bind = { "(" ~ let_key ~ var_bind ~ expr+ ~ ")" }
 
-var_bind = { "(" ~ symbol ~ expr ~ ")" }
+var_bind = _{ "(" ~ symbol ~ expr ~ ")" } // TODO can this be reused?
 
 form = _{ atom+ | expr+ | def_expr+ | let_bind+ | COMMENT }
 
