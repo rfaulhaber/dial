@@ -20,9 +20,20 @@ list_specials = _{ let_key | def_key }
 let_key = _{ "let" }
 def_key = _{ "def" }
 
+// stole this from the pest book
+string = ${ "\"" ~ inner ~ "\"" }
+inner = @{ char* }
+char = {
+    !("\"" | "\\") ~ ANY
+    | "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t")
+    | "\\" ~ ("u" ~ ASCII_HEX_DIGIT{4})
+}
+
+boolean = @{ "true" | "false" }
+
 symbol = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "-" | "_" | "!" | "$" | "%" | "*" | "^" | "+")+? }
 
-atom = _{ nil | number | symbol }
+atom = _{ nil | number | boolean | string | symbol }
 
 expr = { atom | symbol | "(" ~ operator ~ expr+ ~ ")"}
 
