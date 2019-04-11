@@ -1,4 +1,6 @@
-use std::iter::Sum;
+use std::convert::From;
+use std::fmt;
+use std::iter::{Product, Sum};
 use std::ops::{Add, Div, Mul, Sub};
 
 #[derive(Debug, PartialEq, Clone)]
@@ -7,6 +9,17 @@ pub enum DialValue {
 	Float(f64),
 	String(String),
 	Nil,
+}
+
+impl fmt::Display for DialValue {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		match self {
+			DialValue::Integer(int) => write!(f, "{}", int),
+			DialValue::Float(float) => write!(f, "{}", float),
+			DialValue::String(string) => write!(f, "{}", string),
+			DialValue::Nil => write!(f, "nil"),
+		}
+	}
 }
 
 impl Add for DialValue {
@@ -106,5 +119,62 @@ impl Sum for DialValue {
 		I: Iterator<Item = Self>,
 	{
 		iter.fold(DialValue::Nil, |sum, val| sum + val)
+	}
+}
+
+impl Product for DialValue {
+	fn product<I>(iter: I) -> Self
+	where
+		I: Iterator<Item = Self>,
+	{
+		iter.fold(DialValue::Nil, |prod, val| prod * val)
+	}
+}
+
+impl From<i64> for DialValue {
+	fn from(item: i64) -> Self {
+		DialValue::Integer(item)
+	}
+}
+
+impl From<f64> for DialValue {
+	fn from(item: f64) -> Self {
+		DialValue::Float(item)
+	}
+}
+
+impl From<String> for DialValue {
+	fn from(item: String) -> Self {
+		DialValue::String(item)
+	}
+}
+
+#[cfg(test)]
+mod test {
+	use super::*;
+
+	#[test]
+	fn addition_int_defined() {
+		let left = DialValue::Integer(1);
+		let right = DialValue::Integer(2);
+
+		assert_eq!(DialValue::Integer(3), left + right);
+	}
+
+	#[test]
+	fn subtraction_int_defined() {
+		let left = DialValue::Integer(1);
+		let right = DialValue::Integer(2);
+
+		assert_eq!(DialValue::Integer(1), right - left);
+	}
+
+	#[test]
+	fn sum_should_sum_all_values() {
+		let vals = vec![DialValue::Integer(1), DialValue::Integer(2)];
+
+		let result: DialValue = vals.into_iter().sum();
+
+		assert_eq!(result, DialValue::Integer(3));
 	}
 }
