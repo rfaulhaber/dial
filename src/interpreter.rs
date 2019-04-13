@@ -180,7 +180,7 @@ mod test {
     fn test_let_expr_basic() {
         let mut interp = Interpreter::new();
 
-        let result = interp.eval("(let (c 2) c)", Rule::let_bind);
+        let result = interp.eval("(let [c 2] c)", Rule::let_bind);
 
         assert_eq!(DialValue::Integer(2), *result.unwrap().first().unwrap());
     }

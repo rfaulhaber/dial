@@ -1,24 +1,30 @@
 // TODO see this for inspiration https://www.scheme.com/tspl2d/grammar.html
+
+// pest basics
+WHITESPACE = _{ " " | "\t" }
+COMMENT = @{ ";" ~ ANY* }
+
+// numbers
 int = @{ "-"? ~ ASCII_DIGIT+ }
 float = @{ "-"? ~ ASCII_DIGIT* ~ "." ~ ASCII_DIGIT+ }
 
 number = _{ float | int }
 
+// operators and basic math
 operator = _{ add | sub | mul | div }
 add      = { "+" }
 sub 	 = { "-" }
 mul 	 = { "*" }
 div      = { "/" }
 
+// nil
 nil = { "nil" }
 
-quote = _{ "'" }
+// lists
+list = { "(" ~ atom+ ~ ")" }
+list_expr = { "'" ~ list }
 
-list = { quote ~ "(" ~ atom+ ~ ")" }
-
-list_specials = _{ let_key | def_key }
-let_key = _{ "let" }
-def_key = _{ "def" }
+// strings
 
 // stole this from the pest book
 string = ${ "\"" ~ inner ~ "\"" }
@@ -29,23 +35,29 @@ char = {
     | "\\" ~ ("u" ~ ASCII_HEX_DIGIT{4})
 }
 
+// booleans
 boolean = @{ "true" | "false" }
 
+// symbols / identifiers
 symbol = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "-" | "_" | "!" | "$" | "%" | "*" | "^" | "+")+? }
 
+// atoms
 atom = _{ nil | number | boolean | string | symbol }
 
-expr = { atom | symbol | "(" ~ operator ~ expr+ ~ ")"}
+// expressions
+expr = { atom | "(" ~ operator ~ expr+ ~ ")" | list_expr }
 
+// def expressions, such as (def a 2)
 // TODO should these be recursive?
-def_expr = { "(" ~ def_key  ~ symbol ~ expr ~ ")" }
-let_bind = { "(" ~ let_key ~ var_bind ~ expr+ ~ ")" }
+def_expr = { "(" ~ "def" ~ symbol ~ expr ~ ")" }
 
-var_bind = _{ "(" ~ symbol ~ expr ~ ")" } // TODO can this be reused?
+// let binding, like (let [a 2] (+ a 2))
+let_bind = { "(" ~ "let" ~ var_bind ~ expr+ ~ ")" }
 
+// stealing a page out of clojure...
+var_bind = _{ "[" ~ symbol ~ expr ~ "]" } // TODO can this be reused?
+
+// defines Dial program
 form = _{ atom+ | expr+ | def_expr+ | let_bind+ | COMMENT }
 
 repl_line = _{ form }
-
-WHITESPACE = _{ " " | "\t" }
-COMMENT = @{ ";" ~ ANY* }
