@@ -142,6 +142,18 @@ impl Interpreter {
         }
     }
 
+    fn eval_do(&self, pair: Pair<Rule>) -> DialValue {
+        unimplemented!();
+    }
+
+    fn eval_if(&self, pair: Pair<Rule>) -> DialValue {
+        unimplemented!();
+    }
+
+    fn eval_func(&self, pair: Pair<Rule>) -> DialValue {
+        unimplemented!();
+    }
+
     fn push_scope(&mut self) {
         self.env = self.env.push_scope();
     }
