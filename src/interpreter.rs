@@ -145,29 +145,34 @@ impl Interpreter {
     }
 
     fn eval_op_expr(&mut self, pair: Pair<Rule>) -> DialValue {
-        let pair_str = pair.as_str();
         let mut inner = pair.into_inner();
         let first = inner.next().unwrap();
 
-        let initial = self.eval_expr(inner.next().unwrap());
-
-        info!(
-            "perfomring: {:?} with initial: {}",
-            first.as_rule(),
-            initial
-        );
+        info!("perfomring: {:?}", first.as_rule(),);
 
         match first.as_rule() {
             Rule::add => inner.map(|v| self.eval_expr(v)).sum(),
-            Rule::sub => inner
-                .map(|v| self.eval_expr(v))
-                .fold(initial, |sum, val| sum - val),
-            Rule::mul => inner
-                .map(|v| self.eval_expr(v))
-                .fold(initial, |sum, val| sum * val),
-            Rule::div => inner
-                .map(|v| self.eval_expr(v))
-                .fold(initial, |sum, val| sum / val),
+            Rule::sub => {
+                let mut values = inner.map(|v| self.eval_expr(v));
+
+                let first = values.next().unwrap();
+
+                values.fold(first, |diff, val| diff - val)
+            }
+            Rule::mul => {
+                let mut values = inner.map(|v| self.eval_expr(v));
+
+                let first = values.next().unwrap();
+
+                values.fold(first, |diff, val| diff * val)
+            }
+            Rule::div => {
+                let mut values = inner.map(|v| self.eval_expr(v));
+
+                let first = values.next().unwrap();
+
+                values.fold(first, |quot, val| quot / val)
+            }
             _ => unreachable!(),
         }
     }
