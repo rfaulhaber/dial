@@ -20,10 +20,6 @@ div      = { "/" }
 // nil
 nil = { "nil" }
 
-// lists
-list = { "(" ~ atom+ ~ ")" }
-list_expr = { "'" ~ list }
-
 // strings
 
 // stole this from the pest book
@@ -42,10 +38,18 @@ boolean = @{ "true" | "false" }
 symbol = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "-" | "_" | "!" | "$" | "%" | "*" | "^" | "+")+? }
 
 // atoms
-atom = _{ nil | number | boolean | string | symbol }
+atom = { nil | number | boolean | string | symbol }
 
 // expressions
-expr = { atom | "(" ~ operator ~ expr+ ~ ")" | list_expr }
+expr = _{ atom | op_expr | list_expr | do_expr | def }
+
+// lists
+list = { "(" ~ atom+ ~ ")" }
+list_expr = { "'" ~ list }
+
+def = _{ def_expr | let_bind }
+
+op_expr = { "(" ~ operator ~ expr+ ~ ")" }
 
 // def expressions, such as (def a 2)
 // TODO should these be recursive?
@@ -57,7 +61,9 @@ let_bind = { "(" ~ "let" ~ var_bind ~ expr+ ~ ")" }
 // stealing a page out of clojure...
 var_bind = _{ "[" ~ symbol ~ expr ~ "]" } // TODO can this be reused?
 
+do_expr = { "(" ~ "do" ~ expr+ ~ ")" }
+
 // defines Dial program
-form = _{ atom+ | expr+ | def_expr+ | let_bind+ | COMMENT }
+form = _{ expr+ | COMMENT }
 
 repl_line = _{ form }

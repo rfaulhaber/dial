@@ -65,6 +65,7 @@ impl Sub for DialValue {
     type Output = DialValue;
 
     fn sub(self, other: DialValue) -> Self::Output {
+        info!("self: {}, other: {}", self, other);
         match self {
             DialValue::Integer(int) => match other {
                 DialValue::Integer(other_int) => DialValue::Integer(int - other_int),
