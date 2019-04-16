@@ -10,8 +10,8 @@ use pest::Parser;
 // impl<'a> From<Pair<'a, Rule>> for DialType {
 // }
 
-// TODO implement custom Result type, like EvalResult
-// returns either DialValue or Error
+// TODO implement result, custom error
+// type DialEvalResult = Result<DialValue, DialEvalError>;
 
 pub struct Interpreter {
     env: Env,
@@ -47,14 +47,10 @@ impl Interpreter {
                         DialValue::Boolean(false)
                     }
                 }
-                Rule::op_expr | Rule::list_expr | Rule::do_expr | Rule::def => self.eval_expr(pair),
+                Rule::op_expr | Rule::list_expr | Rule::do_expr => self.eval_expr(pair),
                 Rule::def_expr => self.eval_def_expr(pair),
                 Rule::let_bind => self.eval_let_bind(pair),
-                Rule::symbol => match self.get_symbol(String::from(pair.as_span().as_str())) {
-                    Some(val) => val,
-                    None => DialValue::Nil, // TODO return error?
-                },
-                Rule::COMMENT | Rule::nil => DialValue::Nil,
+                Rule::symbol => self.eval_symbol(pair),
                 _ => {
                     info!("rule not implemented yet");
                     DialValue::Nil
@@ -130,6 +126,7 @@ impl Interpreter {
     }
 
     fn eval_atom(&self, pair: Pair<Rule>) -> DialValue {
+        let original = pair.clone();
         let terminal = pair.into_inner().next().unwrap();
         let rule = terminal.as_rule();
         info!("eval_atom: evaluating: {:?}", rule);
@@ -139,7 +136,7 @@ impl Interpreter {
             Rule::int => eval_int(terminal),
             Rule::boolean => eval_bool(terminal),
             Rule::string => eval_string(terminal),
-            Rule::symbol => eval_symbol(terminal, self.env.clone()),
+            Rule::symbol => self.eval_symbol(original),
             _ => unreachable!(),
         }
     }
@@ -177,35 +174,6 @@ impl Interpreter {
         }
     }
 
-    // fn eval_expr(&self, pair: Pair<Rule>) -> DialValue {
-    //     let pair_str = pair.as_str();
-    //     let mut inner = pair.into_inner();
-    //     let first = inner.next().unwrap();
-
-    //     match first.as_rule() {
-    //         Rule::int => DialValue::Integer(pair_str.parse::<i64>().unwrap()),
-    //         Rule::float => DialValue::Float(pair_str.parse::<f64>().unwrap()),
-    //         Rule::add => inner.map(|v| self.eval_expr(v)).sum(),
-    //         Rule::sub => inner
-    //             .map(|v| self.eval_expr(v))
-    //             .fold(DialValue::Nil, |sum, val| sum - val),
-    //         Rule::mul => inner
-    //             .map(|v| self.eval_expr(v))
-    //             .fold(DialValue::Nil, |sum, val| sum * val),
-    //         Rule::div => inner
-    //             .map(|v| self.eval_expr(v))
-    //             .fold(DialValue::Nil, |sum, val| sum / val),
-    //         Rule::nil => DialValue::Nil,
-
-    //         // Rule::expr => eval_expr(inner),
-    //         Rule::symbol => match self.get_symbol(String::from(pair_str)) {
-    //             Some(val) => val,
-    //             None => DialValue::Nil, // TODO return error?
-    //         },
-    //         _ => unimplemented!(),
-    //     }
-    // }
-
     fn eval_list_expr(&self, pair: Pair<Rule>) -> DialValue {
         unimplemented!();
     }
@@ -220,6 +188,14 @@ impl Interpreter {
 
     fn eval_func(&self, pair: Pair<Rule>) -> DialValue {
         unimplemented!();
+    }
+
+    fn eval_symbol(&self, pair: Pair<Rule>) -> DialValue {
+        let symbol = pair.as_span().as_str();
+        match self.env.get(&String::from(symbol)) {
+            Some(val) => val,
+            None => DialValue::Nil, // TODO return error?
+        }
     }
 
     fn push_scope(&mut self) {
@@ -249,10 +225,6 @@ fn eval_bool(pair: Pair<Rule>) -> DialValue {
 }
 
 fn eval_string(pair: Pair<Rule>) -> DialValue {
-    unimplemented!();
-}
-
-fn eval_symbol(pair: Pair<Rule>, env: Env) -> DialValue {
     unimplemented!();
 }
 
