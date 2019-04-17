@@ -94,6 +94,7 @@ impl Interpreter {
             Rule::def_expr => self.eval_def_expr(pair),
             Rule::let_bind => self.eval_let_bind(pair),
             Rule::if_expr => self.eval_if(pair),
+            Rule::func_def => self.eval_func_def(pair),
             _ => unreachable!(),
         }
     }
@@ -174,7 +175,7 @@ impl Interpreter {
         }
     }
 
-    fn eval_func(&self, pair: Pair<Rule>) -> DialValue {
+    fn eval_func_def(&self, pair: Pair<Rule>) -> DialValue {
         unimplemented!();
     }
 

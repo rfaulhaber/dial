@@ -69,6 +69,12 @@ do_expr = { "(" ~ "do" ~ expr+ ~ ")" }
 // if expr, like (if (= a 2) "equal" "not equal")
 if_expr = { "(" ~ "if" ~ expr ~ expr ~ expr ~ ")" }
 
+// an example: (def adder ([a b] => (+ a b)))
+// TODO do I need parentheses?
+func_def = { "(" ~ func_args ~ "=>" ~ expr ~ ")" }
+
+func_args = { "[" ~ symbol* ~ "]" }
+
 // defines Dial program
 form = _{ expr+ | COMMENT }
 
