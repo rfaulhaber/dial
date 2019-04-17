@@ -41,7 +41,7 @@ symbol = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "-" | "_" | "!" | "$" | "%" | "*
 atom = { nil | number | boolean | string | symbol }
 
 // expressions
-expr = _{ atom | op_expr | list_expr | do_expr | def }
+expr = _{ atom | op_expr | list_expr | do_expr | if_expr | def }
 
 // lists
 list = { "(" ~ atom+ ~ ")" }
@@ -49,6 +49,9 @@ list_expr = { "'" ~ list }
 
 def = _{ def_expr | let_bind }
 
+// TODO generalize "(" ~ expr ~ ")"
+
+// operations, like (+ 1 2)
 op_expr = { "(" ~ operator ~ expr+ ~ ")" }
 
 // def expressions, such as (def a 2)
@@ -62,6 +65,9 @@ let_bind = { "(" ~ "let" ~ var_bind ~ expr+ ~ ")" }
 var_bind = _{ "[" ~ symbol ~ expr ~ "]" } // TODO can this be reused?
 
 do_expr = { "(" ~ "do" ~ expr+ ~ ")" }
+
+// if expr, like (if (= a 2) "equal" "not equal")
+if_expr = { "(" ~ "if" ~ expr ~ expr ~ expr ~ ")" }
 
 // defines Dial program
 form = _{ expr+ | COMMENT }

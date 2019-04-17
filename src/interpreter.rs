@@ -93,6 +93,7 @@ impl Interpreter {
             Rule::do_expr => self.eval_do_expr(pair),
             Rule::def_expr => self.eval_def_expr(pair),
             Rule::let_bind => self.eval_let_bind(pair),
+            Rule::if_expr => self.eval_if(pair),
             _ => unreachable!(),
         }
     }
@@ -157,8 +158,20 @@ impl Interpreter {
             .unwrap()
     }
 
-    fn eval_if(&self, pair: Pair<Rule>) -> DialValue {
-        unimplemented!();
+    fn eval_if(&mut self, pair: Pair<Rule>) -> DialValue {
+        let mut exprs = pair.into_inner();
+
+        // TODO this is why I need to return a result!
+        let cond = exprs.next().unwrap();
+        let if_true = exprs.next().unwrap();
+        let if_false = exprs.next().unwrap();
+
+        let cond_result = self.eval_expr(cond);
+
+        match cond_result {
+            DialValue::Boolean(false) | DialValue::Nil => self.eval_expr(if_false),
+            _ => self.eval_expr(if_true),
+        }
     }
 
     fn eval_func(&self, pair: Pair<Rule>) -> DialValue {
@@ -278,6 +291,48 @@ mod test {
         assert_eq!(
             *interp.eval("true", Rule::atom).unwrap().first().unwrap(),
             DialValue::Boolean(true)
+        );
+    }
+
+    #[test]
+    fn if_eval_true_basic() {
+        let mut interp = Interpreter::new();
+
+        assert_eq!(
+            *interp
+                .eval("(if true 1 0)", Rule::if_expr)
+                .unwrap()
+                .first()
+                .unwrap(),
+            DialValue::Integer(1),
+        );
+    }
+
+    #[test]
+    fn if_eval_false_basic() {
+        let mut interp = Interpreter::new();
+
+        assert_eq!(
+            *interp
+                .eval("(if false 1 0)", Rule::if_expr)
+                .unwrap()
+                .first()
+                .unwrap(),
+            DialValue::Integer(0),
+        );
+    }
+
+    #[test]
+    fn if_eval_nil_basic() {
+        let mut interp = Interpreter::new();
+
+        assert_eq!(
+            *interp
+                .eval("(if nil 1 0)", Rule::if_expr)
+                .unwrap()
+                .first()
+                .unwrap(),
+            DialValue::Integer(0),
         );
     }
 }
