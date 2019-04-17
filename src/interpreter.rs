@@ -196,11 +196,16 @@ fn eval_float(pair: Pair<Rule>) -> DialValue {
 }
 
 fn eval_bool(pair: Pair<Rule>) -> DialValue {
-    unimplemented!();
+    match pair.as_str() {
+        "true" => DialValue::Boolean(true),
+        "false" => DialValue::Boolean(false),
+        _ => unreachable!(), // hopefully!
+    }
 }
 
 fn eval_string(pair: Pair<Rule>) -> DialValue {
-    unimplemented!();
+    let s = String::from(pair.as_str());
+    DialValue::String(s)
 }
 
 #[cfg(test)]
@@ -251,5 +256,28 @@ mod test {
 
         let assignment = interp.eval("(do (def a 2) (- 2 a) (+ a 6))", Rule::do_expr);
         assert_eq!(DialValue::Integer(8), *assignment.unwrap().first().unwrap());
+    }
+
+    #[test]
+    fn string_eval_baisc() {
+        let mut interp = Interpreter::new();
+
+        let expected = String::from("\"hello world\"");
+
+        let result = interp.eval(expected.as_str(), Rule::atom);
+        assert_eq!(
+            DialValue::String(expected),
+            *result.unwrap().first().unwrap()
+        );
+    }
+
+    #[test]
+    fn bool_eval_basic() {
+        let mut interp = Interpreter::new();
+
+        assert_eq!(
+            *interp.eval("true", Rule::atom).unwrap().first().unwrap(),
+            DialValue::Boolean(true)
+        );
     }
 }
