@@ -29,36 +29,7 @@ impl Interpreter {
     pub fn eval(&mut self, input: &str, rule: Rule) -> Result<Vec<DialValue>, error::Error<Rule>> {
         let parsed_input = DialParser::parse(rule, input)?;
 
-        let mut values = Vec::new();
-
-        for pair in parsed_input {
-            if log_enabled!(Level::Info) {
-                info!("found rule: {:?}", pair.as_rule());
-            }
-
-            let val = match pair.as_rule() {
-                Rule::int => DialValue::Integer(pair.as_str().parse::<i64>().unwrap()),
-                Rule::float => DialValue::Float(pair.as_str().parse::<f64>().unwrap()),
-                Rule::string => DialValue::String(String::from(pair.as_str())),
-                Rule::boolean => {
-                    if pair.as_str() == "true" {
-                        DialValue::Boolean(true)
-                    } else {
-                        DialValue::Boolean(false)
-                    }
-                }
-                Rule::op_expr | Rule::list_expr | Rule::do_expr => self.eval_expr(pair),
-                Rule::def_expr => self.eval_def_expr(pair),
-                Rule::let_bind => self.eval_let_bind(pair),
-                Rule::symbol => self.eval_symbol(pair),
-                _ => {
-                    info!("rule not implemented yet");
-                    DialValue::Nil
-                }
-            };
-
-            values.push(val);
-        }
+        let values = parsed_input.map(|expr| self.eval_expr(expr)).collect();
 
         Ok(values)
     }
@@ -83,7 +54,7 @@ impl Interpreter {
             info!("symbol defined as: {:?}", expr_value.clone());
         }
 
-        expr_value
+        expr_value.clone()
     }
 
     fn eval_let_bind(&mut self, pair: Pair<Rule>) -> DialValue {
@@ -120,7 +91,8 @@ impl Interpreter {
             Rule::op_expr => self.eval_op_expr(pair),
             Rule::list_expr => self.eval_list_expr(pair),
             Rule::do_expr => self.eval_do_expr(pair),
-            Rule::def => self.eval_def_expr(pair),
+            Rule::def_expr => self.eval_def_expr(pair),
+            Rule::let_bind => self.eval_let_bind(pair),
             _ => unreachable!(),
         }
     }
@@ -178,8 +150,11 @@ impl Interpreter {
         unimplemented!();
     }
 
-    fn eval_do_expr(&self, pair: Pair<Rule>) -> DialValue {
-        unimplemented!();
+    fn eval_do_expr(&mut self, pair: Pair<Rule>) -> DialValue {
+        pair.into_inner()
+            .map(|inner| self.eval_expr(inner))
+            .last()
+            .unwrap()
     }
 
     fn eval_if(&self, pair: Pair<Rule>) -> DialValue {
@@ -233,7 +208,7 @@ mod test {
     use super::*;
 
     #[test]
-    fn test_eval_add_expr() {
+    fn eval_add_expr() {
         let mut interp = Interpreter::new();
 
         let result = interp.eval("(+ 1 2)", Rule::expr);
@@ -242,7 +217,7 @@ mod test {
     }
 
     #[test]
-    fn test_eval_add_indef_expr() {
+    fn eval_add_indef_expr() {
         let mut interp = Interpreter::new();
 
         let result = interp.eval("(+ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15)", Rule::expr);
@@ -251,7 +226,7 @@ mod test {
     }
 
     #[test]
-    fn test_let_expr_basic() {
+    fn let_expr_basic() {
         let mut interp = Interpreter::new();
 
         let result = interp.eval("(let [c 2] c)", Rule::let_bind);
@@ -260,7 +235,7 @@ mod test {
     }
 
     #[test]
-    fn test_def_expr_basic() {
+    fn def_expr_basic() {
         let mut interp = Interpreter::new();
 
         let assignment = interp.eval("(def a 2)", Rule::def_expr);
@@ -268,5 +243,13 @@ mod test {
 
         let result = interp.eval("(def b (+ a 2))", Rule::def_expr);
         assert_eq!(DialValue::Integer(4), *result.unwrap().first().unwrap());
+    }
+
+    #[test]
+    fn do_expr_basic() {
+        let mut interp = Interpreter::new();
+
+        let assignment = interp.eval("(do (def a 2) (- 2 a) (+ a 6))", Rule::do_expr);
+        assert_eq!(DialValue::Integer(8), *assignment.unwrap().first().unwrap());
     }
 }
