@@ -1,5 +1,7 @@
 // TODO see this for inspiration https://www.scheme.com/tspl2d/grammar.html
 
+// TODO generalize such that the grammar is basically just a list of exprs
+
 // pest basics
 WHITESPACE = _{ " " | "\t" }
 COMMENT = @{ ";" ~ ANY* }
@@ -50,6 +52,8 @@ list_expr = { "'" ~ list }
 def = _{ def_expr | let_bind }
 
 // TODO generalize "(" ~ expr ~ ")"
+
+// TODO generalize function calls, make ops "builtin" functions
 
 // operations, like (+ 1 2)
 op_expr = { "(" ~ operator ~ expr+ ~ ")" }

@@ -138,6 +138,8 @@ impl Interpreter {
                 values.fold(first, |diff, val| diff * val)
             }
             Rule::div => {
+                // TODO return ratio like clojure
+                // TODO make a little more type-aware
                 let mut values = inner.map(|v| self.eval_expr(v));
 
                 let first = values.next().unwrap();

@@ -9,6 +9,8 @@ pub enum DialValue {
     Float(f64),
     Boolean(bool),
     String(String),
+    // Ratio {num: i64, denom: i64},
+    // Func(FuncRef)
     Nil,
 }
 
