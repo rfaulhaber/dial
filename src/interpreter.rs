@@ -1,6 +1,6 @@
 use super::env::Env;
 use super::parser::{DialParser, Rule};
-use super::values::DialValue;
+use super::values::{DialValue, FuncRef};
 use log::Level;
 use pest::error;
 use pest::iterators::Pair;
@@ -178,7 +178,9 @@ impl Interpreter {
     }
 
     fn eval_func_def(&self, pair: Pair<Rule>) -> DialValue {
-        unimplemented!();
+        let fr = FuncRef { pair };
+
+        DialValue::Func(fr)
     }
 
     fn eval_symbol(&self, pair: Pair<Rule>) -> DialValue {

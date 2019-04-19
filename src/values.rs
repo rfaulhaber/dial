@@ -1,5 +1,8 @@
 #![allow(clippy::suspicious_arithmetic_impl)]
 
+use super::env::Env;
+use super::parser::Rule;
+use pest::iterators::Pair;
 use std::convert::From;
 use std::fmt;
 use std::iter::{Product, Sum};
@@ -11,9 +14,22 @@ pub enum DialValue {
     Float(f64),
     Boolean(bool),
     String(String),
+    // TODO extract ratio math into separate mod or crate
     Ratio { num: i64, den: i64 }, // note: should this just be a tuple?
-    // Func(FuncRef) // TODO define FuncRef
+    Func(FuncRef),                // TODO define FuncRef
     Nil,
+}
+
+#[derive(Debug, Clone)]
+pub struct FuncRef {
+    pair: Pair<Rule>,
+    scope: Env,
+}
+
+impl fmt::Display for FuncRef {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Func")
+    }
 }
 
 impl fmt::Display for DialValue {
@@ -30,6 +46,7 @@ impl fmt::Display for DialValue {
                 }
             }
             DialValue::Ratio { num, den } => write!(f, "{}/{}", num, den),
+            DialValue::Func(fr) => write!(f, "{}", fr),
             DialValue::Nil => write!(f, "nil"),
         }
     }
@@ -59,10 +76,10 @@ impl Add for DialValue {
                 },
                 DialValue::Ratio { num, den },
             ) => {
-                let newDem = (lden * den) / gcd(lden, den);
-                let newNum = (lnum) * (newDem / lden) + num * (newDem / den);
+                let new_dem = (lden * den) / gcd(lden, den);
+                let new_num = (lnum) * (new_dem / lden) + num * (new_dem / den);
 
-                new_ratio(newNum, newDem)
+                new_ratio(new_num, new_dem)
             }
             _ => panic!("addition not defiend for this type"),
         }
@@ -95,10 +112,10 @@ impl Sub for DialValue {
                 },
                 DialValue::Ratio { num, den },
             ) => {
-                let newDem = (lden * den) / gcd(lden, den);
-                let newNum = lnum * (newDem / lden) - num * (newDem / den);
+                let new_dem = (lden * den) / gcd(lden, den);
+                let new_num = (lnum) * (new_dem / lden) - num * (new_dem / den);
 
-                new_ratio(newNum, newDem)
+                new_ratio(new_num, new_dem)
             }
             _ => panic!("subtraction not defiend for this type"),
         }
