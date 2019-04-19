@@ -11,7 +11,7 @@ pub enum DialValue {
     Float(f64),
     Boolean(bool),
     String(String),
-    Ratio { num: i64, denom: i64 }, // note: should this just be a tuple? note: should these be u64s?
+    Ratio { num: i64, den: i64 }, // note: should this just be a tuple?
     // Func(FuncRef) // TODO define FuncRef
     Nil,
 }
@@ -29,7 +29,7 @@ impl fmt::Display for DialValue {
                     write!(f, "false")
                 }
             }
-            DialValue::Ratio { num, denom } => write!(f, "{}/{}", num, denom),
+            DialValue::Ratio { num, den } => write!(f, "{}/{}", num, den),
             DialValue::Nil => write!(f, "nil"),
         }
     }
@@ -44,27 +44,23 @@ impl Add for DialValue {
             (DialValue::Integer(a), DialValue::Float(b)) => DialValue::Float(a as f64 + b),
             (DialValue::Float(a), DialValue::Integer(b)) => DialValue::Float(a + b as f64),
             (DialValue::Float(a), DialValue::Float(b)) => DialValue::Float(a + b),
-            (DialValue::Float(a), DialValue::Ratio { num, denom }) => {
-                DialValue::Float(a + (num as f64 / denom as f64))
+            (DialValue::Float(a), DialValue::Ratio { num, den }) => {
+                DialValue::Float(a + (num as f64 / den as f64))
             }
-            (DialValue::Ratio { num, denom }, DialValue::Float(a)) => {
-                DialValue::Float(a + (num as f64 / denom as f64))
+            (DialValue::Ratio { num, den }, DialValue::Float(a)) => {
+                DialValue::Float(a + (num as f64 / den as f64))
             }
-            (DialValue::Integer(a), DialValue::Ratio { num, denom }) => {
-                new_ratio(a * denom + num, denom)
-            }
-            (DialValue::Ratio { num, denom }, DialValue::Integer(a)) => {
-                new_ratio(a * denom + num, denom)
-            }
+            (DialValue::Integer(a), DialValue::Ratio { num, den }) => new_ratio(a * den + num, den),
+            (DialValue::Ratio { num, den }, DialValue::Integer(a)) => new_ratio(a * den + num, den),
             (
                 DialValue::Ratio {
                     num: lnum,
-                    denom: ldenom,
+                    den: lden,
                 },
-                DialValue::Ratio { num, denom },
+                DialValue::Ratio { num, den },
             ) => {
-                let newDem = (ldenom * denom) / gcd(ldenom, denom);
-                let newNum = (lnum) * (newDem / ldenom) + num * (newDem / denom);
+                let newDem = (lden * den) / gcd(lden, den);
+                let newNum = (lnum) * (newDem / lden) + num * (newDem / den);
 
                 new_ratio(newNum, newDem)
             }
@@ -82,27 +78,25 @@ impl Sub for DialValue {
             (DialValue::Integer(a), DialValue::Float(b)) => DialValue::Float(a as f64 - b),
             (DialValue::Float(a), DialValue::Integer(b)) => DialValue::Float(a - b as f64),
             (DialValue::Float(a), DialValue::Float(b)) => DialValue::Float(a - b),
-            (DialValue::Float(a), DialValue::Ratio { num, denom }) => {
-                DialValue::Float(a - (num as f64 / denom as f64))
+            (DialValue::Float(a), DialValue::Ratio { num, den }) => {
+                DialValue::Float(a - (num as f64 / den as f64))
             }
-            (DialValue::Ratio { num, denom }, DialValue::Float(a)) => {
-                DialValue::Float((num as f64 / denom as f64) - a)
+            (DialValue::Ratio { num, den }, DialValue::Float(a)) => {
+                DialValue::Float((num as f64 / den as f64) - a)
             }
-            (DialValue::Integer(a), DialValue::Ratio { num, denom }) => {
-                new_ratio(a * denom - num, denom)
-            }
-            (DialValue::Ratio { num, denom }, DialValue::Integer(a)) => {
-                new_ratio(num - (a * denom), denom)
+            (DialValue::Integer(a), DialValue::Ratio { num, den }) => new_ratio(a * den - num, den),
+            (DialValue::Ratio { num, den }, DialValue::Integer(a)) => {
+                new_ratio(num - (a * den), den)
             }
             (
                 DialValue::Ratio {
                     num: lnum,
-                    denom: ldenom,
+                    den: lden,
                 },
-                DialValue::Ratio { num, denom },
+                DialValue::Ratio { num, den },
             ) => {
-                let newDem = (ldenom * denom) / gcd(ldenom, denom);
-                let newNum = lnum * (newDem / ldenom) - num * (newDem / denom);
+                let newDem = (lden * den) / gcd(lden, den);
+                let newNum = lnum * (newDem / lden) - num * (newDem / den);
 
                 new_ratio(newNum, newDem)
             }
@@ -120,21 +114,21 @@ impl Mul for DialValue {
             (DialValue::Integer(a), DialValue::Float(b)) => DialValue::Float(a as f64 * b),
             (DialValue::Float(a), DialValue::Integer(b)) => DialValue::Float(a * b as f64),
             (DialValue::Float(a), DialValue::Float(b)) => DialValue::Float(a * b),
-            (DialValue::Float(a), DialValue::Ratio { num, denom }) => {
-                DialValue::Float(a * (num as f64 / denom as f64))
+            (DialValue::Float(a), DialValue::Ratio { num, den }) => {
+                DialValue::Float(a * (num as f64 / den as f64))
             }
-            (DialValue::Ratio { num, denom }, DialValue::Float(a)) => {
-                DialValue::Float((num as f64 / denom as f64) * a)
+            (DialValue::Ratio { num, den }, DialValue::Float(a)) => {
+                DialValue::Float((num as f64 / den as f64) * a)
             }
-            (DialValue::Integer(a), DialValue::Ratio { num, denom }) => new_ratio(a * num, denom),
-            (DialValue::Ratio { num, denom }, DialValue::Integer(a)) => new_ratio(num * a, denom),
+            (DialValue::Integer(a), DialValue::Ratio { num, den }) => new_ratio(a * num, den),
+            (DialValue::Ratio { num, den }, DialValue::Integer(a)) => new_ratio(num * a, den),
             (
                 DialValue::Ratio {
                     num: lnum,
-                    denom: ldenom,
+                    den: lden,
                 },
-                DialValue::Ratio { num, denom },
-            ) => new_ratio(lnum * num, ldenom * denom),
+                DialValue::Ratio { num, den },
+            ) => new_ratio(lnum * num, lden * den),
             _ => panic!("multiplication not defiend for this type"),
         }
     }
@@ -146,42 +140,29 @@ impl Div for DialValue {
     fn div(self, other: DialValue) -> Self::Output {
         match (self, other) {
             (DialValue::Integer(a), DialValue::Integer(b)) => {
-                let (num, denom) = reduce_ratio(a, b);
-                DialValue::Ratio { num, denom }
+                let (num, den) = reduce_ratio(a, b);
+                DialValue::Ratio { num, den }
             }
             (DialValue::Integer(a), DialValue::Float(b)) => DialValue::Float(a as f64 / b),
             (DialValue::Float(a), DialValue::Integer(b)) => DialValue::Float(a / b as f64),
             (DialValue::Float(a), DialValue::Float(b)) => DialValue::Float(a / b),
-            (DialValue::Integer(a), DialValue::Ratio { num, denom }) => new_ratio(a * denom, num),
-            (DialValue::Float(a), DialValue::Ratio { num, denom }) => {
-                DialValue::Float(a / (num as f64 / denom as f64))
+            (DialValue::Integer(a), DialValue::Ratio { num, den }) => new_ratio(a * den, num),
+            (DialValue::Float(a), DialValue::Ratio { num, den }) => {
+                DialValue::Float(a / (num as f64 / den as f64))
             }
-            (DialValue::Ratio { num, denom }, DialValue::Float(a)) => {
-                DialValue::Float((num as f64 / denom as f64) / a)
+            (DialValue::Ratio { num, den }, DialValue::Float(a)) => {
+                DialValue::Float((num as f64 / den as f64) / a)
             }
-            (DialValue::Ratio { num, denom }, DialValue::Integer(a)) => new_ratio(num, denom * a),
+            (DialValue::Ratio { num, den }, DialValue::Integer(a)) => new_ratio(num, den * a),
             (
                 DialValue::Ratio {
                     num: lnum,
-                    denom: ldenom,
+                    den: lden,
                 },
-                DialValue::Ratio { num, denom },
-            ) => new_ratio(lnum * denom, ldenom * num),
+                DialValue::Ratio { num, den },
+            ) => new_ratio(lnum * den, lden * num),
             _ => panic!("division not defined for this type"),
         }
-        // match self {
-        //     DialValue::Integer(int) => match other {
-        //         DialValue::Integer(other_int) => DialValue::Integer(int / other_int),
-        //         DialValue::Float(float) => DialValue::Float(int as f64 / float),
-        //         _ => panic!("division not defiend for this type"),
-        //     },
-        //     DialValue::Float(float) => match other {
-        //         DialValue::Integer(int) => DialValue::Float(int as f64 / float),
-        //         DialValue::Float(other_float) => DialValue::Float(float / other_float),
-        //         _ => panic!("division not defiend for this type"),
-        //     },
-        //     _ => panic!("division not defiend for this type"),
-        // }
     }
 }
 
@@ -227,8 +208,8 @@ impl From<bool> for DialValue {
     }
 }
 
-fn new_ratio(num: i64, denom: i64) -> DialValue {
-    let (top, bottom) = reduce_ratio(num, denom);
+fn new_ratio(num: i64, den: i64) -> DialValue {
+    let (top, bottom) = reduce_ratio(num, den);
 
     if bottom == 1 {
         return DialValue::Integer(top);
@@ -237,20 +218,20 @@ fn new_ratio(num: i64, denom: i64) -> DialValue {
     if bottom < 0 || top < 0 {
         return DialValue::Ratio {
             num: -top,
-            denom: -bottom,
+            den: -bottom,
         };
     }
 
     DialValue::Ratio {
         num: top,
-        denom: bottom,
+        den: bottom,
     }
 }
 
-fn reduce_ratio(num: i64, denom: i64) -> (i64, i64) {
-    let common = gcd(num, denom);
+fn reduce_ratio(num: i64, den: i64) -> (i64, i64) {
+    let common = gcd(num, den);
 
-    (num / common, denom / common)
+    (num / common, den / common)
 }
 
 fn gcd(a: i64, b: i64) -> i64 {
@@ -309,7 +290,7 @@ mod test {
     #[test]
     fn int_div_by_ratio() {
         let int = DialValue::Integer(2);
-        let ratio = DialValue::Ratio { num: 1, denom: 3 }; // 1/3
+        let ratio = DialValue::Ratio { num: 1, den: 3 }; // 1/3
 
         let result = int / ratio;
 
@@ -319,17 +300,17 @@ mod test {
     #[test]
     fn ratio_div_by_int() {
         let int = DialValue::Integer(2);
-        let ratio = DialValue::Ratio { num: 1, denom: 3 }; // 1/3
+        let ratio = DialValue::Ratio { num: 1, den: 3 }; // 1/3
 
         let result = ratio / int;
 
-        assert_eq!(result, DialValue::Ratio { num: 1, denom: 6 });
+        assert_eq!(result, DialValue::Ratio { num: 1, den: 6 });
     }
 
     #[test]
     fn float_div_by_ratio() {
         let float = DialValue::Float(2.0);
-        let ratio = DialValue::Ratio { num: 1, denom: 2 };
+        let ratio = DialValue::Ratio { num: 1, den: 2 };
 
         let result = float / ratio;
 
@@ -339,7 +320,7 @@ mod test {
     #[test]
     fn ratio_div_by_float() {
         let float = DialValue::Float(2.0);
-        let ratio = DialValue::Ratio { num: 1, denom: 2 };
+        let ratio = DialValue::Ratio { num: 1, den: 2 };
 
         let result = ratio / float;
 
@@ -348,38 +329,38 @@ mod test {
 
     #[test]
     fn ratio_div_by_ratio() {
-        let left = DialValue::Ratio { num: 1, denom: 4 };
-        let right = DialValue::Ratio { num: 1, denom: 2 };
+        let left = DialValue::Ratio { num: 1, den: 4 };
+        let right = DialValue::Ratio { num: 1, den: 2 };
 
         let result = left / right;
 
-        assert_eq!(result, DialValue::Ratio { num: 1, denom: 2 });
+        assert_eq!(result, DialValue::Ratio { num: 1, den: 2 });
     }
 
     #[test]
     fn int_mul_by_ratio() {
         let int = DialValue::Integer(2);
-        let ratio = DialValue::Ratio { num: 1, denom: 3 }; // 1/3
+        let ratio = DialValue::Ratio { num: 1, den: 3 }; // 1/3
 
         let result = int * ratio;
 
-        assert_eq!(result, DialValue::Ratio { num: 2, denom: 3 });
+        assert_eq!(result, DialValue::Ratio { num: 2, den: 3 });
     }
 
     #[test]
     fn ratio_mul_by_int() {
         let int = DialValue::Integer(2);
-        let ratio = DialValue::Ratio { num: 1, denom: 3 }; // 1/3
+        let ratio = DialValue::Ratio { num: 1, den: 3 }; // 1/3
 
         let result = ratio * int;
 
-        assert_eq!(result, DialValue::Ratio { num: 2, denom: 3 });
+        assert_eq!(result, DialValue::Ratio { num: 2, den: 3 });
     }
 
     #[test]
     fn float_mul_by_ratio() {
         let float = DialValue::Float(2.0);
-        let ratio = DialValue::Ratio { num: 1, denom: 2 };
+        let ratio = DialValue::Ratio { num: 1, den: 2 };
 
         let result = float * ratio;
 
@@ -389,7 +370,7 @@ mod test {
     #[test]
     fn ratio_mul_by_float() {
         let float = DialValue::Float(2.0);
-        let ratio = DialValue::Ratio { num: 1, denom: 2 };
+        let ratio = DialValue::Ratio { num: 1, den: 2 };
 
         let result = ratio * float;
 
@@ -398,38 +379,38 @@ mod test {
 
     #[test]
     fn ratio_mul_by_ratio() {
-        let left = DialValue::Ratio { num: 1, denom: 4 };
-        let right = DialValue::Ratio { num: 1, denom: 2 };
+        let left = DialValue::Ratio { num: 1, den: 4 };
+        let right = DialValue::Ratio { num: 1, den: 2 };
 
         let result = left * right;
 
-        assert_eq!(result, DialValue::Ratio { num: 1, denom: 8 });
+        assert_eq!(result, DialValue::Ratio { num: 1, den: 8 });
     }
 
     #[test]
     fn int_add_by_ratio() {
         let int = DialValue::Integer(2);
-        let ratio = DialValue::Ratio { num: 1, denom: 3 }; // 1/3
+        let ratio = DialValue::Ratio { num: 1, den: 3 }; // 1/3
 
         let result = int * ratio;
 
-        assert_eq!(result, DialValue::Ratio { num: 2, denom: 3 });
+        assert_eq!(result, DialValue::Ratio { num: 2, den: 3 });
     }
 
     #[test]
     fn ratio_add_by_int() {
         let int = DialValue::Integer(2);
-        let ratio = DialValue::Ratio { num: 1, denom: 3 }; // 1/3
+        let ratio = DialValue::Ratio { num: 1, den: 3 }; // 1/3
 
         let result = ratio + int;
 
-        assert_eq!(result, DialValue::Ratio { num: 7, denom: 3 });
+        assert_eq!(result, DialValue::Ratio { num: 7, den: 3 });
     }
 
     #[test]
     fn float_add_by_ratio() {
         let float = DialValue::Float(2.0);
-        let ratio = DialValue::Ratio { num: 1, denom: 2 };
+        let ratio = DialValue::Ratio { num: 1, den: 2 };
 
         let result = float + ratio;
 
@@ -439,7 +420,7 @@ mod test {
     #[test]
     fn ratio_add_by_float() {
         let float = DialValue::Float(2.0);
-        let ratio = DialValue::Ratio { num: 1, denom: 2 };
+        let ratio = DialValue::Ratio { num: 1, den: 2 };
 
         let result = ratio + float;
 
@@ -448,38 +429,38 @@ mod test {
 
     #[test]
     fn ratio_add_by_ratio() {
-        let left = DialValue::Ratio { num: 1, denom: 4 };
-        let right = DialValue::Ratio { num: 1, denom: 2 };
+        let left = DialValue::Ratio { num: 1, den: 4 };
+        let right = DialValue::Ratio { num: 1, den: 2 };
 
         let result = left + right;
 
-        assert_eq!(result, DialValue::Ratio { num: 3, denom: 4 });
+        assert_eq!(result, DialValue::Ratio { num: 3, den: 4 });
     }
 
     #[test]
     fn int_sub_by_ratio() {
         let int = DialValue::Integer(2);
-        let ratio = DialValue::Ratio { num: 1, denom: 3 }; // 1/3
+        let ratio = DialValue::Ratio { num: 1, den: 3 }; // 1/3
 
         let result = int * ratio;
 
-        assert_eq!(result, DialValue::Ratio { num: 2, denom: 3 });
+        assert_eq!(result, DialValue::Ratio { num: 2, den: 3 });
     }
 
     #[test]
     fn ratio_sub_by_int() {
         let int = DialValue::Integer(2);
-        let ratio = DialValue::Ratio { num: 1, denom: 2 }; // 1/3
+        let ratio = DialValue::Ratio { num: 1, den: 2 }; // 1/3
 
         let result = ratio - int;
 
-        assert_eq!(result, DialValue::Ratio { num: -3, denom: 2 });
+        assert_eq!(result, DialValue::Ratio { num: -3, den: 2 });
     }
 
     #[test]
     fn float_sub_by_ratio() {
         let float = DialValue::Float(2.0);
-        let ratio = DialValue::Ratio { num: 1, denom: 2 };
+        let ratio = DialValue::Ratio { num: 1, den: 2 };
 
         let result = float - ratio;
 
@@ -489,7 +470,7 @@ mod test {
     #[test]
     fn ratio_sub_by_float() {
         let float = DialValue::Float(2.0);
-        let ratio = DialValue::Ratio { num: 1, denom: 2 };
+        let ratio = DialValue::Ratio { num: 1, den: 2 };
 
         let result = ratio - float;
 
@@ -498,12 +479,12 @@ mod test {
 
     #[test]
     fn ratio_sub_by_ratio() {
-        let left = DialValue::Ratio { num: 1, denom: 4 };
-        let right = DialValue::Ratio { num: 1, denom: 2 };
+        let left = DialValue::Ratio { num: 1, den: 4 };
+        let right = DialValue::Ratio { num: 1, den: 2 };
 
         let result = left - right;
 
-        assert_eq!(result, DialValue::Ratio { num: -1, denom: 4 });
+        assert_eq!(result, DialValue::Ratio { num: -1, den: 4 });
     }
 
 }
