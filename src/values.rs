@@ -16,20 +16,8 @@ pub enum DialValue {
     String(String),
     // TODO extract ratio math into separate mod or crate
     Ratio { num: i64, den: i64 }, // note: should this just be a tuple?
-    Func(FuncRef),                // TODO define FuncRef
+    // Func(FuncRef),                // TODO define FuncRef
     Nil,
-}
-
-#[derive(Debug, Clone)]
-pub struct FuncRef {
-    pair: Pair<Rule>,
-    scope: Env,
-}
-
-impl fmt::Display for FuncRef {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Func")
-    }
 }
 
 impl fmt::Display for DialValue {
@@ -46,7 +34,7 @@ impl fmt::Display for DialValue {
                 }
             }
             DialValue::Ratio { num, den } => write!(f, "{}/{}", num, den),
-            DialValue::Func(fr) => write!(f, "{}", fr),
+            // DialValue::Func(fr) => write!(f, "{}", fr),
             DialValue::Nil => write!(f, "nil"),
         }
     }
