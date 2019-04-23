@@ -7,9 +7,10 @@ extern crate log;
 extern crate env_logger;
 
 mod env;
-// mod func;
+mod func;
 mod interpreter;
 mod parser;
+mod ratio;
 mod repl;
 mod values;
 

@@ -2,7 +2,7 @@ use super::values::DialValue;
 use std::cell::RefCell;
 use std::collections::HashMap;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Env {
     symbol_map: RefCell<HashMap<String, DialValue>>,
     outer: Option<Box<Env>>,
