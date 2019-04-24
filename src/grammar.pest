@@ -79,6 +79,8 @@ func_def = { func_args ~ "=>" ~ expr }
 
 func_args = { "[" ~ symbol* ~ "]" }
 
+func_call = { "(" ~ symbol ~ expr* ~ ")" }
+
 // defines Dial program
 form = _{ expr+ | COMMENT }
 

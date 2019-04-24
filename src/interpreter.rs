@@ -13,6 +13,8 @@ use pest::Parser;
 // TODO implement result, custom error
 // type DialEvalResult = Result<DialValue, DialEvalError>;
 
+// TODO make internally mutable using RefCell
+
 pub struct Interpreter {
     env: Env,
 }
@@ -177,6 +179,7 @@ impl Interpreter {
         }
     }
 
+    // returns function closure to be evaluated later
     fn eval_func_def(&self, pair: Pair<Rule>) -> DialValue {
         unimplemented!();
     }
