@@ -213,6 +213,12 @@ impl From<bool> for DialValue {
     }
 }
 
+impl From<&str> for DialValue {
+    fn from(item: &str) -> Self {
+        DialValue::String(String::from(item))
+    }
+}
+
 fn new_ratio(num: i64, den: i64) -> DialValue {
     let (top, bottom) = reduce_ratio(num, den);
 

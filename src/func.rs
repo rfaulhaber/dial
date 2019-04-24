@@ -5,27 +5,99 @@ use pest::iterators::Pair;
 use std::fmt;
 use std::rc::Rc;
 
+pub type Context = fn(Vec<DialValue>, Box<Env>) -> DialValue;
+
 #[derive(Debug, PartialEq, Clone)]
-pub struct FuncRef {
-	name: Option<String>,
-	arity: u8,
-	env: Rc<Env>,
-	func: fn(Vec<DialValue>) -> DialValue,
+pub enum Arity {
+	Count(u8),
+	Variable,
 }
 
-// TODO evaluate pair, create some kind of closure
-// pub fn new(outer: Rc<Env>, pair: Pair<Rule>) -> FuncRef {
-// 	FuncRef { env: outer, pair }
-// }
+#[derive(Debug, PartialEq, Clone)]
+pub struct Func {
+	name: Option<String>,
+	arity: Arity,
+	// env: Rc<Env>,
+	func: Context,
+}
 
-// impl FuncRef {
-// 	pub fn get_context(&self) -> (&Env, Pair<'a, Rule>) {
-// 		(self.env.as_ref(), self.pair.clone())
-// 	}
-// }
+impl fmt::Display for Func {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		write!(
+			f,
+			"#<function({})>",
+			match self.name.clone() {
+				Some(name) => name,
+				None => String::from("anonymous"),
+			}
+		)
+	}
+}
 
-// impl<'a> fmt::Display for FuncRef<'a> {
-// 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-// 		write!(f, "#<function>")
-// 	}
-// }
+impl Func {
+	// TODO return DialEvalResult
+
+	pub fn new(name: Option<String>, arity: Arity, func: Context) -> Func {
+		Func { name, arity, func }
+	}
+	pub fn eval(&self, args: Vec<DialValue>, env: Box<Env>) -> DialValue {
+		(self.func)(args, env)
+	}
+}
+
+#[cfg(test)]
+mod test {
+	use super::*;
+
+	fn test_func(args: Vec<DialValue>, env: Box<Env>) -> DialValue {
+		args.first().unwrap().clone()
+	}
+
+	fn test_func_sum(args: Vec<DialValue>, env: Box<Env>) -> DialValue {
+		args.into_iter().sum()
+	}
+
+	fn test_func_with_env(args: Vec<DialValue>, env: Box<Env>) -> DialValue {
+		let value = env.get(&String::from("value")).unwrap();
+
+		args.into_iter().sum::<DialValue>() + value
+	}
+
+	#[test]
+	fn eval_basic_test() {
+		let func = Func::new(Some(String::from("test")), Arity::Count(1), test_func);
+
+		let string_value = DialValue::from("hello!");
+
+		let result = func.eval(vec![string_value.clone()], Box::new(Env::new()));
+
+		assert_eq!(result, string_value.clone());
+	}
+
+	#[test]
+	fn eval_multiple_args() {
+		let args = vec![DialValue::from(1), DialValue::from(2), DialValue::from(3)];
+		let func = Func::new(Some(String::from("test")), Arity::Variable, test_func_sum);
+
+		let result = func.eval(args, Box::new(Env::new()));
+
+		assert_eq!(result, DialValue::Integer(6));
+	}
+
+	#[test]
+	fn eval_with_env() {
+		let env = Env::new();
+		env.set(&String::from("value"), DialValue::Integer(100));
+
+		let args = vec![DialValue::from(1), DialValue::from(2), DialValue::from(3)];
+		let func = Func::new(
+			Some(String::from("test")),
+			Arity::Variable,
+			test_func_with_env,
+		);
+
+		let result = func.eval(args, Box::new(env));
+
+		assert_eq!(result, DialValue::Integer(106));
+	}
+}
