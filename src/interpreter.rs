@@ -1,4 +1,5 @@
 use super::env::Env;
+use super::func::Func;
 use super::parser::{DialParser, Rule};
 use super::values::DialValue;
 use log::Level;
@@ -181,6 +182,26 @@ impl Interpreter {
 
     // returns function closure to be evaluated later
     fn eval_func_def(&self, pair: Pair<Rule>) -> DialValue {
+        // TODO
+        // define function from pair
+        // return closure that evaluates expression from pair
+
+        let mut inner = pair.into_inner();
+
+        let args: Vec<String> = inner
+            .next()
+            .unwrap()
+            .into_inner()
+            .map(|val| String::from(val.as_str()))
+            .collect();
+
+        println!("args: {:?}", args);
+
+        let expr = inner.next().unwrap();
+
+        let context = move |env: Box<Env>| self.eval_expr(expr);
+
+        let func = Func::new(None, args, context);
         unimplemented!();
     }
 

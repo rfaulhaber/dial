@@ -43,13 +43,13 @@ symbol = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "-" | "_" | "!" | "$" | "%" | "*
 atom = { nil | number | boolean | string | symbol }
 
 // expressions
-expr = _{ atom | op_expr | list_expr | do_expr | if_expr | def }
+expr = _{ atom | op_expr | list_expr | do_expr | if_expr | def | func_expr }
 
 // lists
 list = { "(" ~ atom+ ~ ")" }
 list_expr = { "'" ~ list }
 
-def = _{ def_expr | let_bind }
+def = _{ def_expr | let_bind | func_def }
 
 // TODO generalize "(" ~ expr ~ ")"
 
@@ -79,7 +79,7 @@ func_def = { func_args ~ "=>" ~ expr }
 
 func_args = { "[" ~ symbol* ~ "]" }
 
-func_call = { "(" ~ symbol ~ expr* ~ ")" }
+func_expr = { "(" ~ symbol ~ expr* ~ ")" }
 
 // defines Dial program
 form = _{ expr+ | COMMENT }

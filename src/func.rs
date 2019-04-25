@@ -6,16 +6,9 @@ use std::rc::Rc;
 pub type Context = fn(Box<Env>) -> DialValue;
 
 #[derive(Debug, PartialEq, Clone)]
-pub enum Arity {
-	Count(u8),
-	Variable,
-}
-
-#[derive(Debug, PartialEq, Clone)]
 pub struct Func {
 	name: Option<String>,
-	arity: Arity,
-	// env: Rc<Env>,
+	binds: Vec<String>,
 	func: Context,
 }
 
@@ -35,11 +28,20 @@ impl fmt::Display for Func {
 impl Func {
 	// TODO return DialEvalResult
 
-	pub fn new(name: Option<String>, arity: Arity, func: Context) -> Func {
-		Func { name, arity, func }
+	pub fn new(name: Option<String>, binds: Vec<String>, func: Context) -> Func {
+		Func { name, binds, func }
 	}
-	pub fn eval(&self, outer: Box<Env>) -> DialValue {
-		(self.func)(outer)
+
+	pub fn eval(&self, outer: Box<Env>, args: Vec<DialValue>) -> DialValue {
+		let scope = Env::from_outer(outer);
+
+		let zipped_args = self.binds.iter().zip(args.iter());
+
+		for (symbol, value) in zipped_args {
+			scope.set(symbol, value.clone());
+		}
+
+		(self.func)(Box::new(scope))
 	}
 }
 
@@ -47,53 +49,23 @@ impl Func {
 mod test {
 	use super::*;
 
-	// fn test_func(args: Vec<DialValue>, env: Box<Env>) -> DialValue {
-	// 	args.first().unwrap().clone()
-	// }
-
-	// fn test_func_sum(args: Vec<DialValue>, env: Box<Env>) -> DialValue {
-	// 	args.into_iter().sum()
-	// }
-
 	fn test_func_with_env(env: Box<Env>) -> DialValue {
 		let value = env.get(&String::from("value")).unwrap();
 
 		value + DialValue::Integer(100)
 	}
 
-	// #[test]
-	// fn eval_basic_test() {
-	// 	let func = Func::new(Some(String::from("test")), Arity::Count(1), test_func);
-
-	// 	let string_value = DialValue::from("hello!");
-
-	// 	let result = func.eval(vec![string_value.clone()], Box::new(Env::new()));
-
-	// 	assert_eq!(result, string_value.clone());
-	// }
-
-	// #[test]
-	// fn eval_multiple_args() {
-	// 	let args = vec![DialValue::from(1), DialValue::from(2), DialValue::from(3)];
-	// 	let func = Func::new(Some(String::from("test")), Arity::Variable, test_func_sum);
-
-	// 	let result = func.eval(args, Box::new(Env::new()));
-
-	// 	assert_eq!(result, DialValue::Integer(6));
-	// }
-
 	#[test]
 	fn eval_with_env() {
 		let env = Env::new();
-		env.set(&String::from("value"), DialValue::Integer(6));
 
 		let func = Func::new(
 			Some(String::from("test")),
-			Arity::Variable,
+			vec![String::from("value")],
 			test_func_with_env,
 		);
 
-		let result = func.eval(Box::new(env));
+		let result = func.eval(Box::new(env), vec![DialValue::Integer(6)]);
 
 		assert_eq!(result, DialValue::Integer(106));
 	}
