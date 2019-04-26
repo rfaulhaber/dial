@@ -5,11 +5,10 @@ use std::rc::Rc;
 
 pub type Context = fn(Box<Env>) -> DialValue;
 
-#[derive(Debug, PartialEq, Clone)]
 pub struct Func {
 	name: Option<String>,
 	binds: Vec<String>,
-	func: Context,
+	func: Box<FnOnce(Box<Env>) -> DialValue>,
 }
 
 impl fmt::Display for Func {

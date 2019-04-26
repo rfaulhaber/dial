@@ -14,7 +14,7 @@ pub enum DialValue {
     String(String),
     // TODO extract ratio math into separate mod or crate
     Ratio { num: i64, den: i64 }, // note: should this just be a tuple?
-    Func(Func),
+    Func(Box<Func>),
     Nil,
 }
 
