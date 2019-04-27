@@ -15,7 +15,7 @@ pub enum Sexpr {
 	String(String),
 	Symbol(String),
 
-	// (+ 1 2) => (+ . (1 . (2 . NIL)))
+	// (+ 1 2) => (+ . (1 . (2 . NIL))) => (cons + (cons 1 (cons 2 nil)))
 	// terminal nils are not represented but general shape is as expected
 	Cons(Box<Sexpr>, Box<Sexpr>),
 	Nil,
@@ -40,14 +40,12 @@ impl Sexpr {
 				if next.is_none() {
 					Sexpr::cons(left, Sexpr::Nil)
 				} else {
-					let next_eval = Sexpr::from_pair(next.unwrap());
+					let next_sexpr = Sexpr::from_pair(next.unwrap());
 
-					left.cons_with(
-						inner
-							.map(Sexpr::from_pair)
-							// thank you clippy
-							.fold(next_eval, Sexpr::cons_with),
-					)
+					let mut rest_sexpr = inner.map(Sexpr::from_pair).collect::<Vec<Sexpr>>();
+					rest_sexpr.insert(0, next_sexpr);
+
+					left.cons_with(rest_sexpr.into_iter().fold(Sexpr::Nil, Sexpr::cons_with))
 				}
 			}
 			_ => unreachable!(),
@@ -110,9 +108,12 @@ mod tests {
 
 	#[test]
 	fn from_list() {
-		let parsed = DialParser::parse(Rule::list_expr, "(* 2 (+ 3 4))").unwrap();
+		let parsed = DialParser::parse(Rule::list_expr, "(* 2 (+ 3 4 5))").unwrap();
 
-		let three_rest = Sexpr::cons(Sexpr::Integer(3), Sexpr::Integer(4));
+		let three_rest = Sexpr::cons(
+			Sexpr::Integer(3),
+			Sexpr::cons(Sexpr::Integer(4), Sexpr::Integer(5)),
+		);
 		let plus_rest = Sexpr::cons(Sexpr::Symbol(String::from("+")), three_rest);
 
 		let mut sexprs = parsed.map(Sexpr::from_pair);
