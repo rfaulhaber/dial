@@ -37,17 +37,18 @@ char = {
 boolean = @{ "true" | "false" }
 
 // symbols / identifiers
-symbol = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "-" | "_" | "!" | "$" | "%" | "*" | "^" | "+")+? }
+identifier = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "-" | "_" | "!" | "$" | "%" | "*" | "^" | "+")+? }
+symbol = @{ "+" | "-" | "*" | "/" }
 
 // atoms
-atom = { nil | number | boolean | string | symbol }
-
-// expressions
-expr = _{ atom | op_expr | list_expr | do_expr | if_expr | def | func_expr }
+atom = _{ nil | number | boolean | string | symbol | identifier }
 
 // lists
 list = { "(" ~ atom+ ~ ")" }
-list_expr = { "'" ~ list }
+list_expr = _{ "(" ~ (atom | list)+ ~ ")" }
+
+// expressions
+expr = _{ atom | op_expr | list_expr | do_expr | if_expr | def | func_expr }
 
 def = _{ def_expr | let_bind | func_def }
 

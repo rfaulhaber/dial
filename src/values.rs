@@ -1,6 +1,5 @@
 #![allow(clippy::suspicious_arithmetic_impl)]
 
-use super::func::Func;
 use std::convert::From;
 use std::fmt;
 use std::iter::{Product, Sum};
@@ -14,7 +13,7 @@ pub enum DialValue {
     String(String),
     // TODO extract ratio math into separate mod or crate
     Ratio { num: i64, den: i64 }, // note: should this just be a tuple?
-    Func(Box<Func>),
+    // Func(Box<Func>),
     Nil,
 }
 
@@ -32,7 +31,7 @@ impl fmt::Display for DialValue {
                 }
             }
             DialValue::Ratio { num, den } => write!(f, "{}/{}", num, den),
-            DialValue::Func(fr) => write!(f, "{:?}", fr),
+            // DialValue::Func(fr) => write!(f, "{:?}", fr),
             DialValue::Nil => write!(f, "nil"),
         }
     }

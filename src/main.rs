@@ -6,13 +6,14 @@ extern crate rustyline;
 extern crate log;
 extern crate env_logger;
 
+mod ast;
 mod env;
-mod func;
 mod interpreter;
 mod parser;
-mod ratio;
 mod repl;
 mod values;
+// mod ratio;
+// mod func;
 
 use repl::Repl;
 

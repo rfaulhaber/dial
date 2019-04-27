@@ -1,5 +1,5 @@
 use super::env::Env;
-use super::func::Func;
+// use super::func::Func;
 use super::parser::{DialParser, Rule};
 use super::values::DialValue;
 use log::Level;
@@ -197,11 +197,11 @@ impl Interpreter {
 
         println!("args: {:?}", args);
 
-        let expr = inner.next().unwrap();
+        // let expr = inner.next().unwrap();
 
-        let context = move |env: Box<Env>| self.eval_expr(expr);
+        // let context = move |env: Box<Env>| self.eval_expr(expr);
 
-        let func = Func::new(None, args, context);
+        // let func = Func::new(None, args, context);
         unimplemented!();
     }
 
