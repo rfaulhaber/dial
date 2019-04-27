@@ -42,18 +42,24 @@ impl Sexpr {
 				} else {
 					let next_sexpr = Sexpr::from_pair(next.unwrap());
 
-					let mut rest_sexpr = inner.map(Sexpr::from_pair).collect::<Vec<Sexpr>>();
-					rest_sexpr.insert(0, next_sexpr);
+					let mut cdr = inner.map(Sexpr::from_pair).collect::<Vec<Sexpr>>();
+					cdr.insert(0, next_sexpr);
 
-					left.cons_with(rest_sexpr.into_iter().fold(Sexpr::Nil, Sexpr::cons_with))
+					let mut base = Sexpr::Nil;
+
+					for sexpr in cdr.into_iter().rev() {
+						base = sexpr.cons_with(base);
+					}
+
+					left.cons_with(base)
 				}
 			}
 			_ => unreachable!(),
 		}
 	}
 
-	fn cons_with(self, other: Sexpr) -> Sexpr {
-		Sexpr::cons(self, other)
+	fn cons_with(&self, other: Sexpr) -> Sexpr {
+		Sexpr::cons(self.clone(), other)
 	}
 
 	fn cons(left: Sexpr, right: Sexpr) -> Sexpr {
@@ -112,7 +118,10 @@ mod tests {
 
 		let three_rest = Sexpr::cons(
 			Sexpr::Integer(3),
-			Sexpr::cons(Sexpr::Integer(4), Sexpr::Integer(5)),
+			Sexpr::cons(
+				Sexpr::Integer(4),
+				Sexpr::cons(Sexpr::Integer(5), Sexpr::Nil),
+			),
 		);
 		let plus_rest = Sexpr::cons(Sexpr::Symbol(String::from("+")), three_rest);
 
