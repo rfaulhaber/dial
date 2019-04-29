@@ -4,6 +4,8 @@ use pest::iterators::Pair;
 #[grammar = "./grammar.pest"]
 pub struct DialParser;
 
+// TODO make some macros!
+
 pub struct ParseError;
 
 // intermediate representation of expressions
@@ -133,11 +135,3 @@ mod tests {
 	}
 
 }
-
-// pub trait FromPair {
-// 	fn from_pair(pair: Pair<Rule>) -> Self;
-// }
-
-// impl FromPair for Sexpr {
-// 	fn from_pair(pair: Pair<Rule>) -> Self {}
-// }
