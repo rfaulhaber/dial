@@ -44,14 +44,14 @@ symbol = @{ "+" | "-" | "*" | "/" }
 atom = _{ nil | number | boolean | string | symbol | identifier }
 
 // lists
-list = { "(" ~ atom+ ~ ")" }
-list_expr = _{ "(" ~ (atom | list)+ ~ ")" }
+list = { "(" ~ (atom | list)+ ~ ")" }
+// list_expr = _{ "(" ~ (atom | list)+ ~ ")" }
 
 let_binding = { "[" ~ (symbol ~ expr)+ ~ "]" }
 func_binding = { "[" ~ symbol* ~ "]" }
 
 // expressions
-expr = _{ atom | op_expr | list_expr | do_expr | if_expr | def | func_expr }
+expr = _{ atom | op_expr | list | do_expr | if_expr | def | func_expr }
 
 def = _{ def_expr | let_bind | func_def }
 

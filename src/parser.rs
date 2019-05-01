@@ -16,6 +16,7 @@ pub enum Sexpr {
 	Boolean(bool),
 	String(String),
 	Symbol(String),
+	Identifier(String),
 
 	// (+ 1 2) => (+ . (1 . (2 . NIL))) => (cons + (cons 1 (cons 2 nil)))
 	// terminal nils are not represented but general shape is as expected
@@ -34,6 +35,7 @@ impl Sexpr {
 			Rule::boolean => parse_bool(pair.as_str()),
 			Rule::string => parse_string(pair.as_str()),
 			Rule::symbol => parse_symbol(pair.as_str()),
+			Rule::identifier => Sexpr::Identifier(String::from(pair.as_str())),
 			Rule::list => {
 				let mut inner = pair.into_inner();
 				let left = Sexpr::from_pair(inner.next().unwrap());
@@ -58,6 +60,24 @@ impl Sexpr {
 			}
 			_ => unreachable!(),
 		}
+	}
+
+	pub fn car(&self) -> Sexpr {
+		match self {
+			Sexpr::Cons(left, _) => *left.clone(),
+			_ => self.clone(),
+		}
+	}
+
+	pub fn cdr(&self) -> Sexpr {
+		match self {
+			Sexpr::Cons(_, right) => *right.clone(),
+			_ => self.clone(),
+		}
+	}
+
+	pub fn into_iter(&self) -> SexprIter {
+		SexprIter::new(self.clone())
 	}
 
 	fn cons_with(&self, other: Sexpr) -> Sexpr {
@@ -101,8 +121,51 @@ fn parse_symbol(s: &str) -> Sexpr {
 	Sexpr::Symbol(String::from(s))
 }
 
+pub struct SexprIter {
+	stack: Vec<Sexpr>,
+}
+
+impl SexprIter {
+	fn new(expr: Sexpr) -> Self {
+		let stack = SexprIter::preorder(expr)
+			.into_iter()
+			.collect::<Vec<Sexpr>>();
+		println!("stack: {:?}", stack);
+
+		SexprIter { stack }
+	}
+
+	fn preorder(expr: Sexpr) -> Vec<Sexpr> {
+		match expr {
+			Sexpr::Cons(left, right) => {
+				let mut left_tree = SexprIter::preorder(*left.clone());
+				let mut right_tree = SexprIter::preorder(*right.clone());
+
+				left_tree.append(&mut right_tree);
+
+				left_tree
+			}
+			_ => vec![expr],
+		}
+	}
+}
+
+impl Iterator for SexprIter {
+	type Item = Sexpr;
+
+	fn next(&mut self) -> Option<Self::Item> {
+		let next = self.stack.pop();
+
+		if next == Some(Sexpr::Nil) {
+			self.stack.pop()
+		} else {
+			next
+		}
+	}
+}
+
 #[cfg(test)]
-mod tests {
+mod sexpr_tests {
 	use super::*;
 	use pest::Parser;
 
@@ -116,7 +179,7 @@ mod tests {
 
 	#[test]
 	fn from_list() {
-		let parsed = DialParser::parse(Rule::list_expr, "(* 2 (+ 3 4 5))").unwrap();
+		let parsed = DialParser::parse(Rule::list, "(* 2 (+ 3 4 5))").unwrap();
 
 		let three_rest = Sexpr::cons(
 			Sexpr::Integer(3),
@@ -125,13 +188,34 @@ mod tests {
 				Sexpr::cons(Sexpr::Integer(5), Sexpr::Nil),
 			),
 		);
+
 		let plus_rest = Sexpr::cons(Sexpr::Symbol(String::from("+")), three_rest);
+		let sub_top = Sexpr::cons(plus_rest, Sexpr::Nil);
+		let two_rest = Sexpr::cons(Sexpr::Integer(2), sub_top);
+		let root = Sexpr::cons(Sexpr::Symbol(String::from("*")), two_rest);
 
 		let mut sexprs = parsed.map(Sexpr::from_pair);
 
-		assert_eq!(sexprs.next().unwrap(), Sexpr::Symbol(String::from("*")));
-		assert_eq!(sexprs.next().unwrap(), Sexpr::Integer(2));
-		assert_eq!(sexprs.next().unwrap(), plus_rest);
+		assert_eq!(sexprs.next().unwrap(), root);
 	}
+}
 
+#[cfg(test)]
+mod sexpriter_tests {
+	use super::*;
+	use pest::Parser;
+
+	#[test]
+	fn iter_through_sexpr() {
+		let mut parsed = DialParser::parse(Rule::list, "(* 2 (+ 3 4 5))").unwrap();
+		let mut sexprs = Sexpr::from_pair(parsed.next().unwrap()).into_iter();
+
+		assert_eq!(sexprs.next(), Some(Sexpr::Symbol(String::from("*"))));
+		assert_eq!(sexprs.next(), Some(Sexpr::Integer(2)));
+		assert_eq!(sexprs.next(), Some(Sexpr::Symbol(String::from("+"))));
+		assert_eq!(sexprs.next(), Some(Sexpr::Integer(3)));
+		assert_eq!(sexprs.next(), Some(Sexpr::Integer(4)));
+		assert_eq!(sexprs.next(), Some(Sexpr::Integer(5)));
+		assert_eq!(sexprs.next(), None);
+	}
 }
