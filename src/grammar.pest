@@ -36,12 +36,14 @@ char = {
 // booleans
 boolean = @{ "true" | "false" }
 
-// symbols / identifiers
+// identifiers are user-defined values associated to a name
 identifier = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "-" | "_" | "!" | "$" | "%" | "*" | "^" | "+")+? }
+
+// symbols are pre-defined, built-in functions
 symbol = @{ "+" | "-" | "*" | "/" }
 
 // atoms
-atom = _{ nil | number | boolean | string | symbol | identifier }
+atom = { nil | number | boolean | string | symbol | identifier }
 
 // lists
 list = { "(" ~ (atom | list)+ ~ ")" }

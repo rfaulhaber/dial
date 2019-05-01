@@ -9,15 +9,25 @@ pub struct DialParser;
 
 pub struct ParseError;
 
-// intermediate representation of expressions
-#[derive(Debug, PartialEq, Clone)]
-pub enum Sexpr {
+pub enum Atom {
 	Integer(i64),
 	Float(f64),
 	Boolean(bool),
 	String(String),
 	Symbol(String),
 	Identifier(String),
+	Nil,
+}
+
+struct ConsCell {
+	car: Box<Sexpr>,
+	cdr: Box<Sexpr>,
+}
+
+// intermediate representation of expressions
+#[derive(Debug, PartialEq, Clone)]
+pub enum Sexpr {
+	Atom(Atom),
 
 	// (+ 1 2) => (+ . (1 . (2 . NIL))) => (cons + (cons 1 (cons 2 nil)))
 	// terminal nils are not represented but general shape is as expected
@@ -176,18 +186,65 @@ mod sexpr_tests {
 	fn from_list() {
 		let parsed = DialParser::parse(Rule::list, "(* 2 (+ 3 4 5))").unwrap();
 
-		let three_rest = Sexpr::cons(
-			Sexpr::Integer(3),
+		let root = Sexpr::cons(
+			Sexpr::Symbol(String::from("*")),
 			Sexpr::cons(
-				Sexpr::Integer(4),
-				Sexpr::cons(Sexpr::Integer(5), Sexpr::Nil),
+				Sexpr::Integer(2),
+				Sexpr::cons(
+					Sexpr::cons(
+						Sexpr::Symbol(String::from("+")),
+						Sexpr::cons(
+							Sexpr::Integer(3),
+							Sexpr::cons(Sexpr::Integer(4), Sexpr::Integer(5)),
+						),
+					),
+					Sexpr::Nil,
+				),
 			),
 		);
 
-		let plus_rest = Sexpr::cons(Sexpr::Symbol(String::from("+")), three_rest);
-		let sub_top = Sexpr::cons(plus_rest, Sexpr::Nil);
-		let two_rest = Sexpr::cons(Sexpr::Integer(2), sub_top);
-		let root = Sexpr::cons(Sexpr::Symbol(String::from("*")), two_rest);
+		let mut sexprs = parsed.map(Sexpr::from_pair);
+
+		assert_eq!(sexprs.next().unwrap(), root);
+	}
+
+	#[test]
+	fn two_lists() {
+		let parsed = DialParser::parse(Rule::list, "((1 2) (3 4))").unwrap();
+
+		let root = Sexpr::cons(
+			Sexpr::cons(
+				Sexpr::Integer(1),
+				Sexpr::cons(Sexpr::Integer(2), Sexpr::Nil),
+			),
+			Sexpr::cons(
+				Sexpr::Integer(3),
+				Sexpr::cons(Sexpr::Integer(4), Sexpr::Nil),
+			),
+		);
+
+		let mut sexprs = parsed.map(Sexpr::from_pair);
+
+		assert_eq!(sexprs.next().unwrap(), root);
+	}
+
+	#[test]
+	fn flat_list() {
+		let parsed = DialParser::parse(Rule::list, "(1 2 3 4 5)").unwrap();
+
+		let root = Sexpr::cons(
+			Sexpr::Integer(1),
+			Sexpr::cons(
+				Sexpr::Integer(2),
+				Sexpr::cons(
+					Sexpr::Integer(3),
+					Sexpr::cons(
+						Sexpr::Integer(4),
+						Sexpr::cons(Sexpr::Integer(5), Sexpr::Nil),
+					),
+				),
+			),
+		);
 
 		let mut sexprs = parsed.map(Sexpr::from_pair);
 
