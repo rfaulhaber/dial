@@ -1,4 +1,5 @@
 use pest::iterators::Pair;
+use std::collections::VecDeque;
 
 #[derive(Parser)]
 #[grammar = "./grammar.pest"]
@@ -122,17 +123,17 @@ fn parse_symbol(s: &str) -> Sexpr {
 }
 
 pub struct SexprIter {
-	stack: Vec<Sexpr>,
+	queue: VecDeque<Sexpr>,
 }
 
 impl SexprIter {
 	fn new(expr: Sexpr) -> Self {
-		let stack = SexprIter::preorder(expr)
+		let queue = SexprIter::preorder(expr)
 			.into_iter()
-			.collect::<Vec<Sexpr>>();
-		println!("stack: {:?}", stack);
+			.collect::<VecDeque<Sexpr>>();
+		println!("queue: {:?}", queue);
 
-		SexprIter { stack }
+		SexprIter { queue }
 	}
 
 	fn preorder(expr: Sexpr) -> Vec<Sexpr> {
@@ -154,13 +155,7 @@ impl Iterator for SexprIter {
 	type Item = Sexpr;
 
 	fn next(&mut self) -> Option<Self::Item> {
-		let next = self.stack.pop();
-
-		if next == Some(Sexpr::Nil) {
-			self.stack.pop()
-		} else {
-			next
-		}
+		self.queue.pop_front()
 	}
 }
 
@@ -210,12 +205,14 @@ mod sexpriter_tests {
 		let mut parsed = DialParser::parse(Rule::list, "(* 2 (+ 3 4 5))").unwrap();
 		let mut sexprs = Sexpr::from_pair(parsed.next().unwrap()).into_iter();
 
-		assert_eq!(sexprs.next(), Some(Sexpr::Symbol(String::from("*"))));
-		assert_eq!(sexprs.next(), Some(Sexpr::Integer(2)));
-		assert_eq!(sexprs.next(), Some(Sexpr::Symbol(String::from("+"))));
-		assert_eq!(sexprs.next(), Some(Sexpr::Integer(3)));
-		assert_eq!(sexprs.next(), Some(Sexpr::Integer(4)));
-		assert_eq!(sexprs.next(), Some(Sexpr::Integer(5)));
+		assert_eq!(sexprs.next().unwrap(), Sexpr::Symbol(String::from("*")));
+		assert_eq!(sexprs.next().unwrap(), Sexpr::Integer(2));
+		assert_eq!(sexprs.next().unwrap(), Sexpr::Symbol(String::from("+")));
+		assert_eq!(sexprs.next().unwrap(), Sexpr::Integer(3));
+		assert_eq!(sexprs.next().unwrap(), Sexpr::Integer(4));
+		assert_eq!(sexprs.next().unwrap(), Sexpr::Integer(5));
+		assert_eq!(sexprs.next().unwrap(), Sexpr::Nil);
+		assert_eq!(sexprs.next().unwrap(), Sexpr::Nil);
 		assert_eq!(sexprs.next(), None);
 	}
 }
