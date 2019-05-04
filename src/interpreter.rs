@@ -62,6 +62,7 @@ impl Interpreter {
                             _ => unimplemented!(),
                         },
                         Atom::Identifier(i) => unimplemented!(), // if id is function, make function call on cdr
+                        // note: this isn't working out recursively. should collect cons values
                         _ => Err("malformed expression"),
                     },
                     _ => unimplemented!(),
