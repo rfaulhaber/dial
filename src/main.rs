@@ -6,19 +6,19 @@ extern crate rustyline;
 extern crate log;
 extern crate env_logger;
 
-mod core;
+// mod core;
 mod env;
 mod interpreter;
 mod parser;
-// mod repl;
-mod values;
 // mod ratio;
+mod repl;
+mod values;
 // mod func;
 
-// use repl::Repl;
+use repl::Repl;
 
 fn main() {
-    // env_logger::init();
-    // let mut repl = Repl::new();
-    // repl.start();
+    env_logger::init();
+    let mut repl = Repl::new();
+    repl.start();
 }

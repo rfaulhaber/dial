@@ -47,6 +47,7 @@ atom = { nil | number | boolean | string | symbol | identifier }
 
 // lists
 list = { "(" ~ (atom | list)+ ~ ")" }
+repl_line = _{ atom+ | list+ }
 // list_expr = _{ "(" ~ (atom | list)+ ~ ")" }
 
 let_binding = { "[" ~ (symbol ~ expr)+ ~ "]" }
@@ -90,4 +91,4 @@ func_expr = { "(" ~ symbol ~ expr* ~ ")" }
 // defines Dial program
 form = _{ expr+ | COMMENT }
 
-repl_line = _{ form }
+// repl_line = _{ form }

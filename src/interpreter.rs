@@ -1,17 +1,30 @@
-use super::core::{add, mul};
+// use super::core::{get_builtin, BuiltinFunc};
 use super::env::Env;
-use super::parser::{DialParser, Rule, Sexpr};
+use super::parser::{Atom, DialParser, Rule, Sexpr};
 use super::values::DialValue;
 use log::Level;
 use std::cell::RefCell;
-use std::collections::HashMap;
 use std::error;
 
 pub type EvalResult = Result<DialValue, &'static str>;
-pub type BuiltinFunc = fn(args: Vec<DialValue>) -> EvalResult;
+pub type BuiltinFunc = fn(args: Sexpr) -> EvalResult;
 
 pub struct Interpreter {
     env: RefCell<Env>,
+}
+
+impl From<Atom> for DialValue {
+    fn from(atom: Atom) -> Self {
+        match atom {
+            Atom::Integer(i) => DialValue::Integer(i),
+            Atom::Float(f) => DialValue::Float(f),
+            Atom::Boolean(b) => DialValue::Boolean(b),
+            Atom::String(s) => DialValue::String(s),
+            Atom::Symbol(s) => unimplemented!(), // TODO evaluate symbol
+            Atom::Identifier(id) => unimplemented!(), // TODO evaluate identifier
+            Atom::Nil => DialValue::Nil,
+        }
+    }
 }
 
 impl Interpreter {
@@ -21,94 +34,70 @@ impl Interpreter {
         }
     }
 
-    // pub fn eval(&self, expr: Sexpr) -> EvalResult {
-    //     let mut stack = Vec::new();
-    //     let mut tmp_stack = Vec::new();
-    //     let mut result_stack = Vec::new();
+    pub fn eval(&self, expr: Sexpr) -> EvalResult {
+        match expr {
+            Sexpr::Atom(a) => match a {
+                Atom::Symbol(s) => unimplemented!(),      // do symbol lookup
+                Atom::Identifier(id) => unimplemented!(), // do id lookup,
+                _ => Ok(DialValue::from(a)),
+            },
+            Sexpr::Cons(car, cdr) => {
+                println!("car: {:?}", car);
+                println!("cdr: {:?}", cdr);
+                match *car {
+                    Sexpr::Atom(a) => match a {
+                        Atom::Symbol(s) => match s.as_str() {
+                            "+" => {
+                                let first = self.eval(cdr.car());
+                                let rest = self.eval(cdr.cdr());
 
-    //     for sexpr in expr.into_iter() {
-    //         match sexpr {
-    //             Sexpr::Nil => {
-    //                 println!("nil found, unwinding stack");
-    //                 for sexpr in stack.pop() {
-    //                     println!("element in stack: {:?}", sexpr);
-    //                     match sexpr {
-    //                         Sexpr::Symbol(s) => {
-    //                             match (get_builtin(s))(tmp_stack.clone()) {
-    //                                 Ok(val) => result_stack.push(val),
-    //                                 Err(e) => {
-    //                                     return Err(e);
-    //                                 }
-    //                             }
-
-    //                             tmp_stack.clear();
-
-    //                             // pass op, vec into handler function
-    //                             break;
-    //                         }
-    //                         Sexpr::Integer(int) => tmp_stack.push(DialValue::Integer(int)),
-    //                         Sexpr::Float(fl) => tmp_stack.push(DialValue::Float(fl)),
-    //                         Sexpr::String(s) => tmp_stack.push(DialValue::String(s)),
-    //                         Sexpr::Boolean(b) => tmp_stack.push(DialValue::Boolean(b)),
-    //                         Sexpr::Identifier(id) => {
-    //                             let result = self.get_symbol(id);
-
-    //                             match result {
-    //                                 Some(result) => tmp_stack.push(result),
-    //                                 None => {
-    //                                     return Err("variable not defined");
-    //                                 }
-    //                             }
-    //                         }
-    //                         _ => unreachable!(),
-    //                     }
-    //                 }
-    //             }
-
-    //             _ => stack.push(sexpr),
-    //         }
-    //     }
-
-    //     Ok(result_stack[0].clone())
-    // }
+                                match (first, rest) {
+                                    (Ok(first_result), Ok(rest_result)) => {
+                                        Ok(first_result + rest_result)
+                                    }
+                                    (Err(err), _) => Err(err),
+                                    (_, Err(err)) => Err(err),
+                                }
+                            }
+                            _ => unimplemented!(),
+                        },
+                        Atom::Identifier(i) => unimplemented!(), // if id is function, make function call on cdr
+                        _ => Err("malformed expression"),
+                    },
+                    _ => unimplemented!(),
+                }
+            }
+        }
+    }
 
     fn get_symbol(&self, symbol: String) -> Option<DialValue> {
         self.env.borrow().get(&symbol)
     }
+
+    // fn call_function(&self, func_name: String, args: Sexpr) -> EvalResult {
+    //     let builtin = get_builtin(func_name);
+
+    //     match builtin {
+    //         Some(func) => (func)(args),
+    //         None => Err(format!("function {} not found", func_name).as_str()),
+    //     }
+    // }
 }
 
-// fn sexpr_to_value(expr: Sexpr) -> DialValue {
-//     match expr {
-//         Sexpr::Integer(int) => DialValue::Integer(int),
-//         Sexpr::Float(fl) => DialValue::Float(fl),
-//         Sexpr::Boolean(b) => DialValue::Boolean(b),
-//         Sexpr::String(s) => DialValue::String(s),
-//         _ => unreachable!(),
-//     }
-// }
+#[cfg(test)]
+mod interpreter_test {
+    use super::*;
+    use pest::Parser;
 
-fn get_builtin(symbol: String) -> BuiltinFunc {
-    match symbol.as_str() {
-        "+" => add,
-        "*" => mul,
-        _ => unimplemented!(),
+    #[test]
+    fn test_function_call() {
+        let mut parsed = DialParser::parse(Rule::list, "(* 2 (+ 3 4 5))").unwrap();
+        let ast = Sexpr::from_pair(parsed.next().unwrap());
+
+        let int = Interpreter::new();
+        let result = int.eval(ast);
+
+        assert!(result.is_ok());
+        assert_eq!(DialValue::Integer(24), result.unwrap());
     }
 }
-
-// #[cfg(test)]
-// mod interpreter_test {
-//     use super::*;
-//     use pest::Parser;
-
-//     #[test]
-//     fn test_function_call() {
-//         let mut parsed = DialParser::parse(Rule::list, "(* 2 (+ 3 4 5))").unwrap();
-//         let ast = Sexpr::from_pair(parsed.next().unwrap());
-
-//         let int = Interpreter::new();
-//         let result = int.eval(ast);
-
-//         assert!(result.is_ok());
-//         assert_eq!(DialValue::Integer(24), result.unwrap());
-//     }
-// }
