@@ -37,36 +37,26 @@ impl Interpreter {
     pub fn eval(&self, expr: Sexpr) -> EvalResult {
         match expr {
             Sexpr::Atom(a) => match a {
-                Atom::Symbol(s) => unimplemented!(),      // do symbol lookup
-                Atom::Identifier(id) => unimplemented!(), // do id lookup,
+                Atom::Symbol(s) => unimplemented!(), // TODO do symbol lookup
+                Atom::Identifier(id) => unimplemented!(), // TODO do id lookup,
                 _ => Ok(DialValue::from(a)),
             },
             Sexpr::Cons(car, cdr) => {
                 println!("car: {:?}", car);
                 println!("cdr: {:?}", cdr);
-                match *car {
-                    Sexpr::Atom(a) => match a {
-                        Atom::Symbol(s) => match s.as_str() {
-                            "+" => {
-                                let first = self.eval(cdr.car());
-                                let rest = self.eval(cdr.cdr());
 
-                                match (first, rest) {
-                                    (Ok(first_result), Ok(rest_result)) => {
-                                        Ok(first_result + rest_result)
-                                    }
-                                    (Err(err), _) => Err(err),
-                                    (_, Err(err)) => Err(err),
-                                }
-                            }
-                            _ => unimplemented!(),
-                        },
-                        Atom::Identifier(i) => unimplemented!(), // if id is function, make function call on cdr
-                        // note: this isn't working out recursively. should collect cons values
-                        _ => Err("malformed expression"),
+                // TODO do symbol lookup on car, if function is valid, pass cdr to it
+
+                let func = match *car {
+                    Sexpr::Atom(a) => match a {
+                        Atom::Symbol(s) => unimplemented!(), // TODO look for builtin function
+                        Atom::Identifier(i) => unimplemented!(), // TODO look for user-defined function
+                        _ => return Err("unknown symbol found"),
                     },
-                    _ => unimplemented!(),
-                }
+                    _ => return Err("invalid form found"),
+                };
+
+                // (func)(cdr)
             }
         }
     }
@@ -74,6 +64,27 @@ impl Interpreter {
     fn get_symbol(&self, symbol: String) -> Option<DialValue> {
         self.env.borrow().get(&symbol)
     }
+
+    // fn collect_expr(&self, sexpr: Sexpr) -> Vec<DialValue> {
+    //     match sexpr {
+    //         Sexpr::Cons(left, right) => {
+    //             match *left {
+    //                 Sexpr::Atom(a) => match (a) {
+    //                     Atom::Symbol(_) | Atom::Identifier(_) => {
+    //                         let left_eval = self.eval(*left);
+    //                     }
+    //                 },
+    //             }
+    //             let left_eval = self.collect_expr(*left);
+    //             let right_eval = self.collect_expr(*right);
+
+    //             left_eval.append(&mut right_eval);
+
+    //             left_eval
+    //         }
+    //         Sexpr::Atom(a) => vec![DialValue::from(a)],
+    //     }
+    // }
 
     // fn call_function(&self, func_name: String, args: Sexpr) -> EvalResult {
     //     let builtin = get_builtin(func_name);

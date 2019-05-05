@@ -1,12 +1,13 @@
 use pest::iterators::{Pair, Pairs};
 use std::collections::VecDeque;
+use std::fmt;
 
 #[derive(Parser)]
 #[grammar = "./grammar.pest"]
 pub struct DialParser;
 
 // TODO make some macros!
-
+// TODO implement custom parsing error, returning useful values
 pub struct ParseError;
 
 #[derive(Debug, PartialEq, Clone)]
@@ -20,6 +21,20 @@ pub enum Atom {
 	Nil,
 }
 
+impl fmt::Display for Atom {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		match self {
+			Atom::Nil => write!(f, "nil"),
+			Atom::Integer(i) => write!(f, "{}", i),
+			Atom::Float(fl) => write!(f, "{}", fl),
+			Atom::Boolean(b) => write!(f, "{}", b),
+			Atom::String(s) => write!(f, "{}", s),
+			Atom::Symbol(s) => write!(f, "{}", s),
+			Atom::Identifier(s) => write!(f, "{}", s),
+		}
+	}
+}
+
 // intermediate representation of expressions
 #[derive(Debug, PartialEq, Clone)]
 pub enum Sexpr {
@@ -28,6 +43,39 @@ pub enum Sexpr {
 	// (+ 1 2) => (+ . (1 . (2 . NIL))) => (cons + (cons 1 (cons 2 nil)))
 	// terminal nils are not represented but general shape is as expected
 	Cons(Box<Sexpr>, Box<Sexpr>),
+}
+
+impl fmt::Display for Sexpr {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		match self {
+			Sexpr::Atom(a) => write!(f, "{}", a),
+			Sexpr::Cons(_, _) => {
+				println!("displaying a cons");
+
+				let mut out = String::new();
+
+				match self.car() {
+					Sexpr::Atom(a) => match a {
+						Atom::Nil => out.push(')'),
+						Atom::Symbol(s) => out.push_str(format!(" ({}", s).as_str()),
+						_ => out.push_str(format!(" {}", a).as_str()),
+					},
+					_ => out.push_str(format!("{}", self.car()).as_str()),
+				};
+
+				match self.cdr() {
+					Sexpr::Atom(a) => match a {
+						Atom::Nil => out.push(')'),
+						Atom::Symbol(s) => out.push_str(format!(" ({} ", s).as_str()),
+						_ => out.push_str(format!(" {}", a).as_str()),
+					},
+					_ => out.push_str(format!("{}", self.cdr()).as_str()),
+				}
+
+				write!(f, "{}", out)
+			}
+		}
+	}
 }
 
 impl Sexpr {
@@ -70,9 +118,43 @@ impl Sexpr {
 		}
 	}
 
-	// pub fn into_iter(&self) -> SexprIter {
-	// 	SexprIter::new(self.clone())
-	// }
+	pub fn is_symbol(&self) -> bool {
+		match self {
+			Sexpr::Atom(a) => match a {
+				Atom::Symbol(_) => true,
+				_ => false,
+			},
+			_ => false,
+		}
+	}
+
+	pub fn is_cons(&self) -> bool {
+		match self {
+			Sexpr::Cons(left, right) => true,
+			_ => false,
+		}
+	}
+
+	pub fn is_atom(&self) -> bool {
+		match self {
+			Sexpr::Atom(_) => true,
+			_ => false,
+		}
+	}
+
+	pub fn is_identifier(&self) -> bool {
+		match self {
+			Sexpr::Atom(a) => match a {
+				Atom::Identifier(_) => true,
+				_ => false,
+			},
+			_ => false,
+		}
+	}
+
+	fn into_iter(&self) -> SexprIter {
+		SexprIter::new(self.clone())
+	}
 
 	fn cons_with(&self, other: Sexpr) -> Sexpr {
 		Sexpr::cons(self.clone(), other)
@@ -131,20 +213,19 @@ fn parse_identifier(s: &str) -> Atom {
 }
 
 pub struct SexprIter {
-	queue: VecDeque<Sexpr>,
+	queue: VecDeque<Atom>,
 }
 
 impl SexprIter {
 	fn new(expr: Sexpr) -> Self {
 		let queue = SexprIter::preorder(expr)
 			.into_iter()
-			.collect::<VecDeque<Sexpr>>();
-		println!("queue: {:?}", queue);
+			.collect::<VecDeque<Atom>>();
 
 		SexprIter { queue }
 	}
 
-	fn preorder(expr: Sexpr) -> Vec<Sexpr> {
+	fn preorder(expr: Sexpr) -> Vec<Atom> {
 		match expr {
 			Sexpr::Cons(left, right) => {
 				let mut left_tree = SexprIter::preorder(*left.clone());
@@ -154,13 +235,13 @@ impl SexprIter {
 
 				left_tree
 			}
-			_ => vec![expr],
+			Sexpr::Atom(a) => vec![a],
 		}
 	}
 }
 
 impl Iterator for SexprIter {
-	type Item = Sexpr;
+	type Item = Atom;
 
 	fn next(&mut self) -> Option<Self::Item> {
 		self.queue.pop_front()
@@ -259,26 +340,60 @@ mod sexpr_tests {
 
 		assert_eq!(sexprs.next().unwrap(), root);
 	}
+
+	#[test]
+	fn sexpr_display() {
+		let mul = Atom::Symbol(String::from("*"));
+		let two = Atom::Integer(2);
+		let plus = Atom::Symbol(String::from("+"));
+		let three = Atom::Integer(3);
+		let four = Atom::Integer(4);
+		let five = Atom::Integer(5);
+
+		let root = Sexpr::cons(
+			Sexpr::Atom(mul),
+			Sexpr::cons(
+				Sexpr::Atom(two),
+				Sexpr::cons(
+					Sexpr::cons(
+						Sexpr::Atom(plus),
+						Sexpr::cons(
+							Sexpr::Atom(three),
+							Sexpr::cons(
+								Sexpr::Atom(four),
+								Sexpr::cons(Sexpr::Atom(five), Sexpr::Atom(Atom::Nil)),
+							),
+						),
+					),
+					Sexpr::Atom(Atom::Nil),
+				),
+			),
+		);
+
+		let result = format!("{}", root);
+
+		assert_eq!("(* 2 (+ 3 4 5))", result.as_str());
+	}
 }
 
-// #[cfg(test)]
-// mod sexpriter_tests {
-// 	use super::*;
-// 	use pest::Parser;
+#[cfg(test)]
+mod sexpriter_tests {
+	use super::*;
+	use pest::Parser;
 
-// 	#[test]
-// 	fn iter_through_sexpr() {
-// 		let mut parsed = DialParser::parse(Rule::list, "(* 2 (+ 3 4 5))").unwrap();
-// 		let mut sexprs = Sexpr::from_pair(parsed.next().unwrap()).into_iter();
+	#[test]
+	fn iter_through_sexpr() {
+		let mut parsed = DialParser::parse(Rule::list, "(* 2 (+ 3 4 5))").unwrap();
+		let mut sexprs = Sexpr::from_pair(parsed.next().unwrap()).into_iter();
 
-// 		assert_eq!(sexprs.next().unwrap(), Sexpr::Symbol(String::from("*")));
-// 		assert_eq!(sexprs.next().unwrap(), Sexpr::Integer(2));
-// 		assert_eq!(sexprs.next().unwrap(), Sexpr::Symbol(String::from("+")));
-// 		assert_eq!(sexprs.next().unwrap(), Sexpr::Integer(3));
-// 		assert_eq!(sexprs.next().unwrap(), Sexpr::Integer(4));
-// 		assert_eq!(sexprs.next().unwrap(), Sexpr::Integer(5));
-// 		assert_eq!(sexprs.next().unwrap(), Sexpr::Nil);
-// 		assert_eq!(sexprs.next().unwrap(), Sexpr::Nil);
-// 		assert_eq!(sexprs.next(), None);
-// 	}
-// }
+		assert_eq!(sexprs.next().unwrap(), Atom::Symbol(String::from("*")));
+		assert_eq!(sexprs.next().unwrap(), Atom::Integer(2));
+		assert_eq!(sexprs.next().unwrap(), Atom::Symbol(String::from("+")));
+		assert_eq!(sexprs.next().unwrap(), Atom::Integer(3));
+		assert_eq!(sexprs.next().unwrap(), Atom::Integer(4));
+		assert_eq!(sexprs.next().unwrap(), Atom::Integer(5));
+		assert_eq!(sexprs.next().unwrap(), Atom::Nil);
+		assert_eq!(sexprs.next().unwrap(), Atom::Nil);
+		assert_eq!(sexprs.next(), None);
+	}
+}
