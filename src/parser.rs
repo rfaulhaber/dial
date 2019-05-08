@@ -21,7 +21,30 @@ pub enum Atom {
 	// TODO Ratio(Ratio)
 	// TODO Lambda
 	// Func(Func),
+	Func(fn(&[Expr]) -> Result<Expr, String>),
+	Lambda(Lambda),
 	Nil,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+struct Lambda {
+	params: Box<Expr>,
+	body: Box<Expr>,
+}
+
+impl fmt::Debug for Atom {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		match self {
+			Atom::Integer(i) => write!(f, "{:?}", i),
+			Atom::Float(fl) => write!(f, "{:?}", fl),
+			Atom::Boolean(b) => write!(f, "{:?}", b),
+			Atom::String(s) => write!(f, "{:?}", s),
+			Atom::Symbol(s) => write!(f, "{:?}", s),
+			Atom::Identifier(s) => write!(f, "{:?}", s),
+			Atom::Func(func) => write!(f, "{:?}", func),
+			Atom::Nil => write!(f, "nil"),
+		}
+	}
 }
 
 impl fmt::Display for Atom {

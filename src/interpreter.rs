@@ -27,7 +27,7 @@ impl Interpreter {
 
                 match op {
                     Expr::Atom(a) => match a {
-                        Atom::Symbol(s) => unimplemented!(),      // do builtin lookup
+                        Atom::Symbol(s) => unimplemented!(),
                         Atom::Identifier(id) => unimplemented!(), // do user-defined lookup
                         _ => Err("invalid form"),
                     },
