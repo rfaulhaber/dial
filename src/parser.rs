@@ -12,7 +12,7 @@ pub struct DialParser;
 pub type ParseResult = Result<Expr, String>;
 
 #[derive(Debug, PartialEq, Clone)]
-pub enum Expr {
+pub enum Atom {
 	Integer(i64),
 	Float(f64),
 	Boolean(bool),
@@ -20,19 +20,32 @@ pub enum Expr {
 	Symbol(String),
 	Identifier(String),
 	Nil,
+}
+
+impl fmt::Display for Atom {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		match self {
+			Atom::Integer(i) => write!(f, "{}", i),
+			Atom::Float(fl) => write!(f, "{}", fl),
+			Atom::Boolean(b) => write!(f, "{}", b),
+			Atom::String(s) => write!(f, "{}", s),
+			Atom::Symbol(s) => write!(f, "{}", s),
+			Atom::Identifier(s) => write!(f, "{}", s),
+			Atom::Nil => write!(f, "nil"),
+		}
+	}
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum Expr {
+	Atom(Atom),
 	List(Vec<Expr>),
 }
 
 impl fmt::Display for Expr {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		match self {
-			Expr::Integer(i) => write!(f, "{}", i),
-			Expr::Float(fl) => write!(f, "{}", fl),
-			Expr::Boolean(b) => write!(f, "{}", b),
-			Expr::String(s) => write!(f, "{}", s),
-			Expr::Symbol(s) => write!(f, "{}", s),
-			Expr::Identifier(s) => write!(f, "{}", s),
-			Expr::Nil => write!(f, "nil"),
+			Expr::Atom(a) => write!(f, "{}", a),
 			Expr::List(l) => {
 				let mut out_str = String::new();
 
@@ -45,6 +58,21 @@ impl fmt::Display for Expr {
 				write!(f, "({})", out_str)
 			}
 		}
+	}
+}
+
+impl Into<Atom> for Expr {
+	fn into(self) -> Atom {
+		match self {
+			Expr::Atom(a) => a,
+			_ => panic!("cannot convert List into Atom"),
+		}
+	}
+}
+
+impl From<Atom> for Expr {
+	fn from(atom: Atom) -> Self {
+		Expr::Atom(atom)
 	}
 }
 
@@ -84,6 +112,13 @@ impl Expr {
 		}
 	}
 
+	pub fn is_atom(&self) -> bool {
+		match self {
+			Expr::Atom(_) => true,
+			_ => false,
+		}
+	}
+
 	pub fn into_iter(&self) -> ExprIter {
 		match self {
 			Expr::List(l) => ExprIter {
@@ -115,18 +150,18 @@ fn parse_atom(pair: Pair<Rule>) -> Expr {
 	let item = pair.into_inner().next().unwrap();
 
 	match item.as_rule() {
-		Rule::nil => Expr::Nil,
-		Rule::int => Expr::Integer(item.as_str().parse::<i64>().unwrap()),
-		Rule::float => Expr::Float(item.as_str().parse::<f64>().unwrap()),
+		Rule::nil => Atom::Nil.into(),
+		Rule::int => Atom::Integer(item.as_str().parse::<i64>().unwrap()).into(),
+		Rule::float => Atom::Float(item.as_str().parse::<f64>().unwrap()).into(),
 		Rule::boolean => {
 			match item.as_str() {
-				"true" => Expr::Boolean(true),
-				_ => Expr::Boolean(false), // hopefully this is correct!
+				"true" => Atom::Boolean(true).into(),
+				_ => Atom::Boolean(false).into(), // hopefully this is correct!
 			}
 		}
-		Rule::string => Expr::String(String::from(item.as_str())),
-		Rule::symbol => Expr::Symbol(String::from(item.as_str())),
-		Rule::identifier => Expr::Identifier(String::from(item.as_str())),
+		Rule::string => Atom::String(String::from(item.as_str())).into(),
+		Rule::symbol => Atom::Symbol(String::from(item.as_str())).into(),
+		Rule::identifier => Atom::Identifier(String::from(item.as_str())).into(),
 		_ => unreachable!(),
 	}
 }
@@ -179,15 +214,15 @@ mod parser_test {
 
 		match result {
 			Expr::List(l) => {
-				assert_eq!(l[0], Expr::Symbol(String::from("*")));
-				assert_eq!(l[1], Expr::Integer(2));
+				assert_eq!(l[0], Atom::Symbol(String::from("*")).into());
+				assert_eq!(l[1], Atom::Integer(2).into());
 				assert_eq!(
 					l[2],
 					Expr::List(vec![
-						Expr::Symbol(String::from("+")),
-						Expr::Integer(3),
-						Expr::Integer(4),
-						Expr::Integer(5),
+						Atom::Symbol(String::from("+")).into(),
+						Atom::Integer(3).into(),
+						Atom::Integer(4).into(),
+						Atom::Integer(5).into(),
 					])
 				);
 			}
@@ -200,7 +235,7 @@ mod parser_test {
 		let parse_result = Expr::from_atom("2");
 		assert!(parse_result.is_ok());
 
-		assert_eq!(parse_result.unwrap(), Expr::Integer(2));
+		assert_eq!(parse_result.unwrap(), Atom::Integer(2).into());
 	}
 }
 
@@ -213,15 +248,15 @@ mod expr_iter_test {
 		let parse_result = Expr::from_list("(* 2 (+ 3 4 5))");
 		let mut iter = parse_result.unwrap().into_iter();
 
-		assert_eq!(iter.next().unwrap(), Expr::Symbol(String::from("*")));
-		assert_eq!(iter.next().unwrap(), Expr::Integer(2));
+		assert_eq!(iter.next().unwrap(), Atom::Symbol(String::from("*")).into());
+		assert_eq!(iter.next().unwrap(), Atom::Integer(2).into());
 		assert_eq!(
 			iter.next().unwrap(),
 			Expr::List(vec![
-				Expr::Symbol(String::from("+")),
-				Expr::Integer(3),
-				Expr::Integer(4),
-				Expr::Integer(5),
+				Atom::Symbol(String::from("+")).into(),
+				Atom::Integer(3).into(),
+				Atom::Integer(4).into(),
+				Atom::Integer(5).into(),
 			])
 		);
 

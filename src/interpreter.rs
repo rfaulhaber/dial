@@ -1,6 +1,6 @@
 // use super::core::{get_builtin, BuiltinFunc};
 use super::env::Env;
-use super::parser::{Atom, DialParser, Rule, Sexpr};
+use super::parser::{DialParser, Rule, Expr};
 use super::values::DialValue;
 use log::Level;
 use std::cell::RefCell;
