@@ -7,7 +7,6 @@ use std::fmt;
 #[grammar = "./grammar.pest"]
 pub struct DialParser;
 
-// TODO make some macros!
 // TODO implement custom parsing error, returning useful values
 pub type ParseResult = Result<Expr, String>;
 
@@ -19,6 +18,9 @@ pub enum Atom {
 	String(String),
 	Symbol(String),
 	Identifier(String),
+	// TODO Ratio(Ratio)
+	// TODO Lambda
+	// Func(Func),
 	Nil,
 }
 
@@ -76,6 +78,22 @@ impl From<Atom> for Expr {
 	}
 }
 
+impl<'a> From<Pair<'a, Rule>> for Expr {
+	fn from(pair: Pair<'a, Rule>) -> Self {
+		parse_pair(pair)
+	}
+}
+
+impl<'a> From<Pairs<'a, Rule>> for Expr {
+	fn from(pairs: Pairs<'a, Rule>) -> Self {
+		let list: Vec<Expr> = pairs.map(parse_pair).collect();
+
+		println!("list len: {}", list.len());
+
+		list[0].clone()
+	}
+}
+
 impl Expr {
 	pub fn from_list(s: &str) -> ParseResult {
 		let ast = DialParser::parse(Rule::list, s);
@@ -116,6 +134,13 @@ impl Expr {
 		match self {
 			Expr::Atom(_) => true,
 			_ => false,
+		}
+	}
+
+	pub fn get_inner_atom(self) -> Atom {
+		match self {
+			Expr::Atom(a) => a,
+			_ => panic!("expr is not an atom"),
 		}
 	}
 
@@ -236,6 +261,29 @@ mod parser_test {
 		assert!(parse_result.is_ok());
 
 		assert_eq!(parse_result.unwrap(), Atom::Integer(2).into());
+	}
+
+	#[test]
+	fn from_paris_returns_expr() {
+		let parse_result = DialParser::parse(Rule::list, "(* 2 (+ 3 4 5))").unwrap();
+		let expr = Expr::from(parse_result);
+
+		match expr {
+			Expr::List(l) => {
+				assert_eq!(l[0], Atom::Symbol(String::from("*")).into());
+				assert_eq!(l[1], Atom::Integer(2).into());
+				assert_eq!(
+					l[2],
+					Expr::List(vec![
+						Atom::Symbol(String::from("+")).into(),
+						Atom::Integer(3).into(),
+						Atom::Integer(4).into(),
+						Atom::Integer(5).into(),
+					])
+				);
+			}
+			_ => unreachable!(),
+		}
 	}
 }
 

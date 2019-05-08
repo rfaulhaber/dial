@@ -1,10 +1,10 @@
-use super::values::DialValue;
+use super::parser::{Atom, Expr};
 use std::cell::RefCell;
 use std::collections::HashMap;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Env {
-    symbol_map: RefCell<HashMap<String, DialValue>>,
+    symbol_map: RefCell<HashMap<String, Expr>>,
     outer: Option<Box<Env>>,
 }
 
@@ -23,11 +23,11 @@ impl Env {
         }
     }
 
-    pub fn set(&self, symbol: &String, value: DialValue) {
-        self.symbol_map.borrow_mut().insert(symbol.clone(), value);
+    pub fn set(&self, symbol: &String, expr: Expr) {
+        self.symbol_map.borrow_mut().insert(symbol.clone(), expr);
     }
 
-    pub fn get(&self, symbol: &String) -> Option<DialValue> {
+    pub fn get(&self, symbol: &String) -> Option<Expr> {
         match self.find(symbol) {
             Some(env) => env.symbol_map.borrow().get(symbol).cloned(),
             None => None,
@@ -72,7 +72,7 @@ mod test {
     fn test_contains_key() {
         let env = Env::new();
 
-        env.set(&String::from("three"), DialValue::Integer(3));
+        env.set(&String::from("three"), Atom::Integer(3).into());
 
         assert!(env.contains_symbol(&String::from("three")));
     }
@@ -81,7 +81,7 @@ mod test {
     fn test_find() {
         let outer_env = Env::new();
         let three_symbol = &String::from("three");
-        outer_env.set(three_symbol, DialValue::Integer(3));
+        outer_env.set(three_symbol, Atom::Integer(3).into());
 
         let boxed_outer = Box::new(outer_env);
 
@@ -98,7 +98,7 @@ mod test {
     fn test_get() {
         let outer_env = Env::new();
         let three_symbol = &String::from("three");
-        outer_env.set(three_symbol, DialValue::Integer(3));
+        outer_env.set(three_symbol, Atom::Integer(3).into());
 
         let boxed_outer = Box::new(outer_env);
 
@@ -107,19 +107,19 @@ mod test {
 
         let ret_val = inner_env.get(three_symbol);
 
-        assert_eq!(ret_val, Some(DialValue::Integer(3)));
+        assert_eq!(ret_val, Some(Atom::Integer(3).into()));
     }
 
     #[test]
     fn new_from_outer() {
         let outer_env = Env::new();
         let three_symbol = &String::from("three");
-        outer_env.set(three_symbol, DialValue::Integer(3));
+        outer_env.set(three_symbol, Atom::Integer(3).into());
 
         let inner = Env::from_outer(Box::new(outer_env));
 
         let ret_val = inner.get(three_symbol);
 
-        assert_eq!(ret_val, Some(DialValue::Integer(3)));
+        assert_eq!(ret_val, Some(Atom::Integer(3).into()));
     }
 }

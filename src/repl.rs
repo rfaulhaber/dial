@@ -1,6 +1,5 @@
 use super::interpreter::{EvalResult, Interpreter};
-use super::parser::{DialParser, Rule, Sexpr};
-use super::values::DialValue;
+use super::parser::{DialParser, Expr, Rule};
 use pest::Parser;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
@@ -26,7 +25,7 @@ impl Repl {
                         match parsed {
                             Ok(result) => {
                                 let exprs = result
-                                    .map(Sexpr::from_pair)
+                                    .map(|pair| Expr::from(pair))
                                     .map(|expr| interpreter.eval(expr));
 
                                 exprs.for_each(|result| print_eval_result(result));
