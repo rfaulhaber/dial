@@ -1,4 +1,4 @@
-use super::parser::{Atom, Expr};
+use crate::parser::{Atom, Expr};
 use std::cell::RefCell;
 use std::collections::HashMap;
 

@@ -42,7 +42,8 @@ identifier = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "-" | "_" | "!" | "$" | "%" 
 // pre-defined function names
 builtin_funcs = _{  "quote" | "atom" | "eq" | "cons" | "cond" | "car" | "cdr" }
 
-// symbols are pre-defined, built-in functions
+// symbols are pre-defined, built-in functions 
+// TODO we should really call these tokens!
 symbol = @{ operator | builtin_funcs }
 
 // atoms

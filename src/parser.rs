@@ -1,6 +1,7 @@
 use pest::error::LineColLocation;
 use pest::iterators::{Pair, Pairs};
 use pest::Parser;
+use std::cmp;
 use std::fmt;
 
 #[derive(Parser)]
@@ -10,7 +11,7 @@ pub struct DialParser;
 // TODO implement custom parsing error, returning useful values
 pub type ParseResult = Result<Expr, String>;
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Clone)]
 pub enum Atom {
 	Integer(i64),
 	Float(f64),
@@ -18,16 +19,43 @@ pub enum Atom {
 	String(String),
 	Symbol(String),
 	Identifier(String),
-	// TODO Ratio(Ratio)
+	Ratio { num: i64, den: i64 },
 	// TODO Lambda
 	// Func(Func),
-	Func(fn(&[Expr]) -> Result<Expr, String>),
+	Func(fn(&[Expr]) -> Result<Expr, &'static str>),
 	Lambda(Lambda),
 	Nil,
 }
 
-#[derive(Debug, PartialEq, Clone)]
-struct Lambda {
+impl cmp::PartialEq for Atom {
+	fn eq(&self, other: &Atom) -> bool {
+		match (self, other) {
+			(Atom::Integer(left), Atom::Integer(right)) => left == right,
+			(Atom::Float(left), Atom::Float(right)) => left == right,
+			(Atom::Boolean(left), Atom::Boolean(right)) => left == right,
+			(Atom::String(left), Atom::String(right)) => left == right,
+			(Atom::Symbol(left), Atom::Symbol(right)) => left == right,
+			(Atom::Identifier(left), Atom::Identifier(right)) => left == right,
+			(
+				Atom::Ratio {
+					num: l_num,
+					den: l_den,
+				},
+				Atom::Ratio {
+					num: r_num,
+					den: r_den,
+				},
+			) => l_num == r_num && l_den == r_den,
+			(Atom::Func(left), Atom::Func(right)) => false, // TODO temporary, change this
+			(Atom::Lambda(left), Atom::Lambda(right)) => false, // TODO temporary, change this
+			(Atom::Nil, Atom::Nil) => true,
+			_ => false,
+		}
+	}
+}
+
+#[derive(Clone)]
+pub struct Lambda {
 	params: Box<Expr>,
 	body: Box<Expr>,
 }
@@ -41,7 +69,9 @@ impl fmt::Debug for Atom {
 			Atom::String(s) => write!(f, "{:?}", s),
 			Atom::Symbol(s) => write!(f, "{:?}", s),
 			Atom::Identifier(s) => write!(f, "{:?}", s),
-			Atom::Func(func) => write!(f, "{:?}", func),
+			Atom::Ratio { num, den } => write!(f, "{:?} / {:?}", num, den),
+			Atom::Func(func) => write!(f, "#{{core}}"),
+			Atom::Lambda(lambda) => write!(f, "#{{lambda}}"),
 			Atom::Nil => write!(f, "nil"),
 		}
 	}
@@ -56,12 +86,39 @@ impl fmt::Display for Atom {
 			Atom::String(s) => write!(f, "{}", s),
 			Atom::Symbol(s) => write!(f, "{}", s),
 			Atom::Identifier(s) => write!(f, "{}", s),
+			Atom::Ratio { num, den } => write!(f, "{} / {}", num, den),
+			Atom::Func(func) => write!(f, "#{{core}}"),
+			Atom::Lambda(lambda) => write!(f, "#{{lambda}}"),
 			Atom::Nil => write!(f, "nil"),
 		}
 	}
 }
 
-#[derive(Debug, PartialEq, Clone)]
+impl From<i64> for Atom {
+	fn from(int: i64) -> Self {
+		Atom::Integer(int)
+	}
+}
+
+impl From<f64> for Atom {
+	fn from(float: f64) -> Self {
+		Atom::Float(float)
+	}
+}
+
+impl From<bool> for Atom {
+	fn from(b: bool) -> Self {
+		Atom::Boolean(b)
+	}
+}
+
+impl From<String> for Atom {
+	fn from(s: String) -> Self {
+		Atom::String(s)
+	}
+}
+
+#[derive(Debug, Clone)]
 pub enum Expr {
 	Atom(Atom),
 	List(Vec<Expr>),
@@ -86,6 +143,28 @@ impl fmt::Display for Expr {
 	}
 }
 
+impl cmp::PartialEq for Expr {
+	fn eq(&self, other: &Expr) -> bool {
+		match (self, other) {
+			(Expr::Atom(left), Expr::Atom(right)) => left == right,
+			(Expr::List(left), Expr::List(right)) => {
+				if left.len() == right.len() {
+					for (left_item, right_item) in left.iter().zip(right.iter()) {
+						if left_item != right_item {
+							return false;
+						}
+					}
+
+					true
+				} else {
+					false
+				}
+			}
+			_ => false,
+		}
+	}
+}
+
 impl Into<Atom> for Expr {
 	fn into(self) -> Atom {
 		match self {
@@ -98,6 +177,30 @@ impl Into<Atom> for Expr {
 impl From<Atom> for Expr {
 	fn from(atom: Atom) -> Self {
 		Expr::Atom(atom)
+	}
+}
+
+impl From<i64> for Expr {
+	fn from(int: i64) -> Self {
+		Expr::Atom(int.into())
+	}
+}
+
+impl From<f64> for Expr {
+	fn from(float: f64) -> Self {
+		Expr::Atom(float.into())
+	}
+}
+
+impl From<bool> for Expr {
+	fn from(b: bool) -> Self {
+		Expr::Atom(b.into())
+	}
+}
+
+impl From<String> for Expr {
+	fn from(s: String) -> Self {
+		Expr::Atom(s.into())
 	}
 }
 
@@ -252,30 +355,23 @@ mod parser_test {
 
 	#[test]
 	fn from_list_returns_expr() {
-		let parse_result = Expr::from_list("(* 2 (+ 3 4 5))");
-
-		assert!(parse_result.is_ok());
-
-		let result = parse_result.unwrap();
+		let pairs = DialParser::parse(Rule::list, "(* 2 (+ 3 4 5))").unwrap();
+		let result = Expr::from(pairs);
 
 		assert!(result.is_list());
 
-		match result {
-			Expr::List(l) => {
-				assert_eq!(l[0], Atom::Symbol(String::from("*")).into());
-				assert_eq!(l[1], Atom::Integer(2).into());
-				assert_eq!(
-					l[2],
-					Expr::List(vec![
-						Atom::Symbol(String::from("+")).into(),
-						Atom::Integer(3).into(),
-						Atom::Integer(4).into(),
-						Atom::Integer(5).into(),
-					])
-				);
-			}
-			_ => unreachable!(),
-		}
+		let expected = Expr::List(vec![
+			Atom::Symbol(String::from("*")).into(),
+			Atom::Integer(2).into(),
+			Expr::List(vec![
+				Atom::Symbol(String::from("+")).into(),
+				Atom::Integer(3).into(),
+				Atom::Integer(4).into(),
+				Atom::Integer(5).into(),
+			]),
+		]);
+
+		assert_eq!(result, expected);
 	}
 
 	#[test]
