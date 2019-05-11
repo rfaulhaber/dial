@@ -1,3 +1,4 @@
+#![allow(clippy::suspicious_arithmetic_impl)]
 use crate::interpreter::EvalResult;
 use crate::parser::{Atom, Expr};
 use std::iter::{Product, Sum};
