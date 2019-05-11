@@ -118,6 +118,12 @@ impl From<String> for Atom {
 	}
 }
 
+impl From<&str> for Atom {
+	fn from(s: &str) -> Self {
+		Atom::String(String::from(s))
+	}
+}
+
 #[derive(Debug, Clone)]
 pub enum Expr {
 	Atom(Atom),
@@ -204,6 +210,12 @@ impl From<String> for Expr {
 	}
 }
 
+impl From<&str> for Expr {
+	fn from(s: &str) -> Self {
+		Expr::Atom(s.into())
+	}
+}
+
 impl<'a> From<Pair<'a, Rule>> for Expr {
 	fn from(pair: Pair<'a, Rule>) -> Self {
 		parse_pair(pair)
@@ -263,13 +275,6 @@ impl Expr {
 		}
 	}
 
-	pub fn get_inner_atom(self) -> Atom {
-		match self {
-			Expr::Atom(a) => a,
-			_ => panic!("expr is not an atom"),
-		}
-	}
-
 	pub fn into_iter(&self) -> ExprIter {
 		match self {
 			Expr::List(l) => ExprIter {
@@ -280,6 +285,13 @@ impl Expr {
 				items: vec![self.clone()],
 				current: 0,
 			},
+		}
+	}
+
+	pub fn as_atom(&self) -> Atom {
+		match self {
+			Expr::Atom(a) => a.clone(),
+			_ => panic!("expr is not an atom"),
 		}
 	}
 }

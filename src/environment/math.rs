@@ -4,16 +4,36 @@ use crate::parser::{Atom, Expr};
 use std::iter::{Product, Sum};
 use std::ops::{Add, Div, Mul, Sub};
 
+// TODO specify arity?
 pub fn add(args: &[Expr]) -> EvalResult {
     if args.is_empty() {
         Ok(0.into())
     } else {
-        unimplemented!();
+        let sum = args
+            .iter()
+            .fold(Atom::Integer(0), |sum, val| sum + val.as_atom());
+
+        Ok(sum.into())
     }
 }
 
 pub fn sub(args: &[Expr]) -> EvalResult {
-    unimplemented!();
+    match args.len() {
+        0 => Err("subtract needs at least one argument"),
+        1 => {
+            let result = Atom::from(0) - args[0].as_atom();
+            Ok(result.into())
+        }
+        _ => {
+            let first = &args[0];
+
+            let diff = args[1..]
+                .iter()
+                .fold(first.as_atom(), |diff, val| diff - val.as_atom());
+
+            Ok(diff.into())
+        }
+    }
 }
 
 pub fn mul(args: &[Expr]) -> EvalResult {
@@ -21,10 +41,6 @@ pub fn mul(args: &[Expr]) -> EvalResult {
 }
 
 pub fn div(args: &[Expr]) -> EvalResult {
-    unimplemented!();
-}
-
-fn int_from_expr(expr: Expr) -> Result<i64, &'static str> {
     unimplemented!();
 }
 
@@ -210,7 +226,56 @@ fn gcd(a: i64, b: i64) -> i64 {
 }
 
 #[cfg(test)]
-mod test {
+mod math_fn_tests {
+    use super::*;
+
+    #[test]
+    fn add_two_numbers() {
+        let left = Expr::Atom(Atom::Integer(2));
+        let right = Expr::Atom(Atom::Integer(3));
+
+        let result = add(&[left, right]);
+
+        assert_eq!(result, Ok(Expr::Atom(Atom::Integer(5))));
+    }
+
+    #[test]
+    fn add_different_types() {
+        let vals: &[Expr] = &[2.into(), 3.4.into(), 4.into(), 5.5.into()];
+        let result = add(vals);
+
+        assert_eq!(result, Ok(Expr::Atom(Atom::Float(14.9))));
+    }
+
+    #[test]
+    fn sub_two_numbers() {
+        let left = Expr::Atom(Atom::Integer(3));
+        let right = Expr::Atom(Atom::Integer(2));
+
+        let result = sub(&[left, right]);
+
+        assert_eq!(result, Ok(Expr::Atom(Atom::Integer(1))));
+    }
+
+    #[test]
+    fn sub_one_number() {
+        let number = Expr::Atom(Atom::Integer(2));
+        let result = sub(&[number]);
+
+        assert_eq!(result, Ok(Expr::Atom(Atom::Integer(-2))));
+    }
+
+    #[test]
+    fn sub_different_types() {
+        let vals: &[Expr] = &[2.into(), 3.5.into()];
+        let result = sub(vals);
+
+        assert_eq!(result, Ok(Expr::Atom(Atom::Float(-1.5))));
+    }
+}
+
+#[cfg(test)]
+mod ops_tests {
     use super::*;
 
     #[test]
