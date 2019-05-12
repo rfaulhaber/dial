@@ -19,7 +19,7 @@ pub fn add(args: &[Expr]) -> EvalResult {
 
 pub fn sub(args: &[Expr]) -> EvalResult {
     match args.len() {
-        0 => Err("subtract needs at least one argument"),
+        0 => Err("not enough arguments"),
         1 => {
             let result = Atom::from(0) - args[0].as_atom();
             Ok(result.into())
@@ -37,11 +37,35 @@ pub fn sub(args: &[Expr]) -> EvalResult {
 }
 
 pub fn mul(args: &[Expr]) -> EvalResult {
-    unimplemented!();
+    match args.len() {
+        0 => Ok(1.into()),
+        1 => Ok(args[0].clone()),
+        _ => {
+            let first = args[0].as_atom().clone();
+            let product = args[1..].iter().fold(first, |sum, val| sum * val.as_atom());
+
+            Ok(product.into())
+        }
+    }
 }
 
 pub fn div(args: &[Expr]) -> EvalResult {
-    unimplemented!();
+    match args.len() {
+        0 => Err("not enough arguments"),
+        1 => {
+            let result = Atom::from(1) / args[0].as_atom();
+            Ok(result.into())
+        }
+        _ => {
+            let first = &args[0];
+
+            let diff = args[1..]
+                .iter()
+                .fold(first.as_atom(), |diff, val| diff / val.as_atom());
+
+            Ok(diff.into())
+        }
+    }
 }
 
 impl Add for Atom {
@@ -173,24 +197,6 @@ impl Div for Atom {
     }
 }
 
-impl Sum for Atom {
-    fn sum<I>(iter: I) -> Self
-    where
-        I: Iterator<Item = Self>,
-    {
-        iter.fold(Atom::Integer(0), |sum, val| sum + val)
-    }
-}
-
-impl Product for Atom {
-    fn product<I>(iter: I) -> Self
-    where
-        I: Iterator<Item = Self>,
-    {
-        iter.fold(Atom::Integer(0), |prod, val| prod * val)
-    }
-}
-
 fn new_ratio(num: i64, den: i64) -> Atom {
     let (top, bottom) = reduce_ratio(num, den);
 
@@ -272,6 +278,62 @@ mod math_fn_tests {
 
         assert_eq!(result, Ok(Expr::Atom(Atom::Float(-1.5))));
     }
+
+    #[test]
+    fn mul_one_number() {
+        let vals: &[Expr] = &[5.into()];
+        let result = mul(vals);
+
+        assert_eq!(result, Ok(5.into()));
+    }
+
+    #[test]
+    fn mul_two_numbers() {
+        let vals: &[Expr] = &[5.into(), 10.into()];
+        let result = mul(vals);
+
+        assert_eq!(result, Ok(50.into()));
+    }
+
+    #[test]
+    fn mul_many_numbers() {
+        let vals: &[Expr] = &[5.into(), 10.into(), 2.5.into()];
+        let result = mul(vals);
+
+        assert_eq!(result, Ok(125.0.into()));
+    }
+
+    #[test]
+    fn div_one_number() {
+        let vals: &[Expr] = &[3.into()];
+        let result = div(vals);
+
+        assert_eq!(result, Ok(Expr::Atom(Atom::Ratio { num: 1, den: 3 })));
+    }
+
+    #[test]
+    fn div_two_numbers() {
+        let vals: &[Expr] = &[3.into(), 6.into()];
+        let result = div(vals);
+
+        assert_eq!(result, Ok(Expr::Atom(Atom::Ratio { num: 1, den: 2 })));
+    }
+
+    #[test]
+    fn div_many_numbers() {
+        let vals: &[Expr] = &[1.into(), 2.into(), 3.into(), 4.into()];
+        let result = div(vals);
+
+        assert_eq!(result, Ok(Expr::Atom(Atom::Ratio { num: 1, den: 24 })));
+    }
+
+    #[test]
+    fn div_floats() {
+        let vals: &[Expr] = &[1.0.into(), 2.0.into()];
+        let result = div(vals);
+
+        assert_eq!(result, Ok(Expr::Atom(Atom::Float(0.5))));
+    }
 }
 
 #[cfg(test)]
@@ -302,15 +364,6 @@ mod ops_tests {
     #[test]
     fn subtraction_mixed_type_defined() {
         assert_eq!(Atom::Float(4.5), Atom::Float(5.5) - Atom::Integer(1));
-    }
-
-    #[test]
-    fn sum_should_sum_all_values() {
-        let vals = vec![Atom::Integer(1), Atom::Integer(2)];
-
-        let result: Atom = vals.into_iter().sum();
-
-        assert_eq!(result, Atom::Integer(3));
     }
 
     #[test]
