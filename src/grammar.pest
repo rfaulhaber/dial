@@ -40,59 +40,14 @@ boolean = @{ "true" | "false" }
 identifier = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "-" | "_" | "!" | "$" | "%" | "*" | "^" | "+")+? }
 
 // pre-defined function names
-builtin_funcs = _{  "quote" | "atom" | "eq" | "cons" | "cond" | "car" | "cdr" }
+keyword = _{  "quote" | "atom" | "eq" | "cons" | "cond" | "car" | "cdr" | "list" | "if" | "do" }
 
-// symbols are pre-defined, built-in functions 
-// TODO we should really call these tokens!
-symbol = @{ operator | builtin_funcs }
+// tokens are pre-defined, built-in functions 
+token = @{ operator | keyword }
 
 // atoms
-atom = { nil | number | boolean | string | symbol | identifier }
+atom = { nil | number | boolean | string | token | identifier }
 
 // lists
 list = { "(" ~ (atom | list)+ ~ ")" }
 repl_line = _{ atom+ | list+ }
-// list_expr = _{ "(" ~ (atom | list)+ ~ ")" }
-
-let_binding = { "[" ~ (symbol ~ expr)+ ~ "]" }
-func_binding = { "[" ~ symbol* ~ "]" }
-
-// expressions
-expr = _{ atom | op_expr | list | do_expr | if_expr | def | func_expr }
-
-def = _{ def_expr | let_bind | func_def }
-
-// TODO generalize "(" ~ expr ~ ")"
-
-// TODO generalize function calls, make ops "builtin" functions
-
-// operations, like (+ 1 2)
-op_expr = { "(" ~ operator ~ expr+ ~ ")" }
-
-// def expressions, such as (def a 2)
-// TODO should these be recursive?
-def_expr = { "(" ~ "def" ~ symbol ~ expr ~ ")" }
-
-// let binding, like (let [a 2] (+ a 2))
-let_bind = { "(" ~ "let" ~ var_bind ~ expr+ ~ ")" }
-
-// stealing a page out of clojure...
-var_bind = _{ "[" ~ symbol ~ expr ~ "]" } // TODO can this be reused?
-
-do_expr = { "(" ~ "do" ~ expr+ ~ ")" }
-
-// if expr, like (if (= a 2) "equal" "not equal")
-if_expr = { "(" ~ "if" ~ expr ~ expr ~ expr ~ ")" }
-
-// an example: (def adder [a b] => (+ a b))
-// TODO do I need parentheses?
-func_def = { func_args ~ "=>" ~ expr }
-
-func_args = { "[" ~ symbol* ~ "]" }
-
-func_expr = { "(" ~ symbol ~ expr* ~ ")" }
-
-// defines Dial program
-form = _{ expr+ | COMMENT }
-
-// repl_line = _{ form }

@@ -1,8 +1,10 @@
 use super::interpreter::{EvalResult, Interpreter};
 use super::parser::{DialParser, Expr, Rule};
+use log::Level;
 use pest::Parser;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
+use std::time::Instant;
 
 pub struct Repl;
 
@@ -24,11 +26,22 @@ impl Repl {
 
                         match parsed {
                             Ok(result) => {
-                                let exprs = result
-                                    .map(|pair| Expr::from(pair))
-                                    .map(|expr| interpreter.eval(expr));
+                                let exprs = result.map(Expr::from).map(|expr| {
+                                    // TODO make more elegant, this is kind of weird
+                                    if log_enabled!(Level::Info) {
+                                        let start = Instant::now();
+                                        let result = interpreter.eval(expr);
+                                        let end = Instant::now();
 
-                                exprs.for_each(|result| print_eval_result(result));
+                                        info!("duration: {:?}", end.duration_since(start));
+
+                                        result
+                                    } else {
+                                        interpreter.eval(expr)
+                                    }
+                                });
+
+                                exprs.for_each(print_eval_result);
                             }
                             // TODO make smarter
                             Err(err) => println!("error encountered in parsing: {:?}", err),

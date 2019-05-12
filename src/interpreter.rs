@@ -40,27 +40,93 @@ impl Interpreter {
                 _ => Ok(atom.into()),
             },
             Expr::List(list) => {
-                let first_result = self.eval(list[0].clone())?;
+                let first = &list[0];
 
-                let args = &list[1..];
+                if is_list_special(first) {
+                    match get_list_special(first).as_str() {
+                        "if" => {
+                            if list[1..].len() > 2 {
+                                return Err("too many arguments for if".to_string());
+                            }
 
-                match first_result {
-                    Expr::Atom(a) => match a {
-                        Atom::Func(f) => {
-                            let args_eval: Result<Vec<Expr>, String> = args
-                                .iter()
-                                .map(|arg_expr| self.eval(arg_expr.clone()))
-                                .collect();
+                            let cond = self.eval(list[1].clone())?;
 
-                            f(&args_eval?)
+                            if is_false_or_nil(&cond) {
+                                self.eval(list[3].clone())
+                            } else {
+                                self.eval(list[2].clone())
+                            }
                         }
-                        Atom::Lambda(l) => unimplemented!(), // do user-defined lookup
+                        "do" => {
+                            let args = &list[1..];
+
+                            args.iter()
+                                .map(|expr| self.eval(expr.clone()))
+                                .last()
+                                .unwrap()
+                        }
+                        "fn" => {
+                            unimplemented!();
+                        }
+                        _ => unreachable!(),
+                    }
+                } else {
+                    let first_result = self.eval(list[0].clone())?;
+
+                    let args = &list[1..];
+
+                    match first_result {
+                        Expr::Atom(a) => match a {
+                            Atom::Func(f) => {
+                                let args_eval: Result<Vec<Expr>, String> = args
+                                    .iter()
+                                    .map(|arg_expr| self.eval(arg_expr.clone()))
+                                    .collect();
+
+                                f(&args_eval?)
+                            }
+                            Atom::Lambda(l) => Err("lambda lookups are unimplemented".to_string()), // do user-defined lookup
+                            _ => Err("invalid form".to_string()),
+                        },
                         _ => Err("invalid form".to_string()),
-                    },
-                    _ => Err("invalid form".to_string()),
+                    }
                 }
             }
         }
+    }
+}
+
+fn is_list_special(expr: &Expr) -> bool {
+    match expr {
+        Expr::Atom(a) => match a {
+            Atom::Symbol(symbol) => match symbol.as_str() {
+                "if" | "do" | "fn" => true,
+                _ => false,
+            },
+            _ => false,
+        },
+        _ => false,
+    }
+}
+
+fn get_list_special(expr: &Expr) -> String {
+    match expr {
+        Expr::Atom(a) => match a {
+            Atom::Symbol(symbol) => symbol.clone(),
+            _ => unreachable!(),
+        },
+        _ => unreachable!(),
+    }
+}
+
+fn is_false_or_nil(expr: &Expr) -> bool {
+    match expr {
+        Expr::Atom(a) => match a {
+            Atom::Boolean(b) => !b,
+            Atom::Nil => true,
+            _ => false,
+        },
+        _ => false,
     }
 }
 

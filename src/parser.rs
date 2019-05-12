@@ -69,7 +69,7 @@ impl fmt::Debug for Atom {
 			Atom::String(s) => write!(f, "{:?}", s),
 			Atom::Symbol(s) => write!(f, "{:?}", s),
 			Atom::Identifier(s) => write!(f, "{:?}", s),
-			Atom::Ratio { num, den } => write!(f, "{:?} / {:?}", num, den),
+			Atom::Ratio { num, den } => write!(f, "{:?}/{:?}", num, den),
 			Atom::Func(func) => write!(f, "#{{core}}"),
 			Atom::Lambda(lambda) => write!(f, "#{{lambda}}"),
 			Atom::Nil => write!(f, "nil"),
@@ -86,7 +86,7 @@ impl fmt::Display for Atom {
 			Atom::String(s) => write!(f, "{}", s),
 			Atom::Symbol(s) => write!(f, "{}", s),
 			Atom::Identifier(s) => write!(f, "{}", s),
-			Atom::Ratio { num, den } => write!(f, "{} / {}", num, den),
+			Atom::Ratio { num, den } => write!(f, "{}/{}", num, den),
 			Atom::Func(func) => write!(f, "#{{core}}"),
 			Atom::Lambda(lambda) => write!(f, "#{{lambda}}"),
 			Atom::Nil => write!(f, "nil"),
@@ -323,7 +323,7 @@ fn parse_atom(pair: Pair<Rule>) -> Expr {
 			}
 		}
 		Rule::string => Atom::String(String::from(item.as_str())).into(),
-		Rule::symbol => Atom::Symbol(String::from(item.as_str())).into(),
+		Rule::token => Atom::Symbol(String::from(item.as_str())).into(),
 		Rule::identifier => Atom::Identifier(String::from(item.as_str())).into(),
 		_ => unreachable!(),
 	}
