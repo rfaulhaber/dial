@@ -1,3 +1,4 @@
+use super::math;
 use crate::parser::{Atom, Expr};
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -12,6 +13,20 @@ impl Env {
     pub fn new() -> Env {
         Env {
             symbol_map: RefCell::new(HashMap::new()),
+            outer: None,
+        }
+    }
+
+    pub fn default() -> Env {
+        let mut map = HashMap::new();
+
+        map.insert(String::from("+"), Expr::Atom(Atom::Func(math::add)));
+        map.insert(String::from("-"), Expr::Atom(Atom::Func(math::sub)));
+        map.insert(String::from("*"), Expr::Atom(Atom::Func(math::mul)));
+        map.insert(String::from("/"), Expr::Atom(Atom::Func(math::div)));
+
+        Env {
+            symbol_map: RefCell::new(map),
             outer: None,
         }
     }

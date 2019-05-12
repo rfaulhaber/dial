@@ -22,7 +22,7 @@ pub enum Atom {
 	Ratio { num: i64, den: i64 },
 	// TODO Lambda
 	// Func(Func),
-	Func(fn(&[Expr]) -> Result<Expr, &'static str>),
+	Func(fn(&[Expr]) -> Result<Expr, String>),
 	Lambda(Lambda),
 	Nil,
 }

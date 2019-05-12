@@ -1,7 +1,6 @@
 #![allow(clippy::suspicious_arithmetic_impl)]
 use crate::interpreter::EvalResult;
 use crate::parser::{Atom, Expr};
-use std::iter::{Product, Sum};
 use std::ops::{Add, Div, Mul, Sub};
 
 // TODO specify arity?
@@ -19,7 +18,7 @@ pub fn add(args: &[Expr]) -> EvalResult {
 
 pub fn sub(args: &[Expr]) -> EvalResult {
     match args.len() {
-        0 => Err("not enough arguments"),
+        0 => Err("not enough arguments".to_string()),
         1 => {
             let result = Atom::from(0) - args[0].as_atom();
             Ok(result.into())
@@ -51,7 +50,7 @@ pub fn mul(args: &[Expr]) -> EvalResult {
 
 pub fn div(args: &[Expr]) -> EvalResult {
     match args.len() {
-        0 => Err("not enough arguments"),
+        0 => Err("not enough arguments".to_string()),
         1 => {
             let result = Atom::from(1) / args[0].as_atom();
             Ok(result.into())
