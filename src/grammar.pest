@@ -26,12 +26,15 @@ nil = { "nil" }
 
 // stole this from the pest book
 string = ${ "\"" ~ inner ~ "\"" }
-inner = @{ char* }
+string_inner = @{ char* }
 char = {
     !("\"" | "\\") ~ ANY
     | "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t")
     | "\\" ~ ("u" ~ ASCII_HEX_DIGIT{4})
 }
+
+// symbols, like from clojure or ruby
+symbol = @{ ":" ~  string_inner }
 
 // booleans
 boolean = @{ "true" | "false" }
@@ -50,4 +53,11 @@ atom = { nil | number | boolean | string | token | identifier }
 
 // lists
 list = { "(" ~ (atom | list)+ ~ ")" }
+
+// clojure-like vectors
+vector = {
+    "[" ~ "]" |
+    "[" ~ atom  ~ ("," ~ atom)* ~ "]"
+}
+
 repl_line = _{ atom+ | list+ }
