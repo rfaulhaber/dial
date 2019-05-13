@@ -1,8 +1,10 @@
+use crate::environment::env::Env;
 use pest::error::LineColLocation;
 use pest::iterators::{Pair, Pairs};
 use pest::Parser;
 use std::cmp;
 use std::fmt;
+use std::rc::Rc;
 
 #[derive(Parser)]
 #[grammar = "./grammar.pest"]
@@ -58,6 +60,17 @@ impl cmp::PartialEq for Atom {
 pub struct Lambda {
 	params: Box<Expr>,
 	body: Box<Expr>,
+	env: Rc<Env>,
+}
+
+impl Lambda {
+	pub fn new(params: Expr, body: Expr, outer: Env) -> Lambda {
+		Lambda {
+			params: Box::new(params),
+			body: Box::new(body),
+			env: Rc::new(outer),
+		}
+	}
 }
 
 impl fmt::Debug for Atom {

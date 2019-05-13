@@ -65,7 +65,33 @@ impl Interpreter {
                                 .last()
                                 .unwrap()
                         }
+                        "def" => {
+                            unimplemented!();
+                            // let first = &list[1];
+
+                            // match first {
+                            //     Expr::Atom(a) => match a {
+                            //         Atom::Identifier(id) => {
+                            //         }
+                            //         _ => {
+                            //             return Err("first argument to def must be an identifier"
+                            //                 .to_string())
+                            //         }
+                            //     },
+                            //     _ => {
+                            //         return Err(
+                            //             "first argument to def must be an identifier".to_string()
+                            //         )
+                            //     }
+                            // }
+                        }
+                        "let" => {
+                            unimplemented!();
+                        }
                         "fn" => {
+                            // TODO validation on list size
+                            let params = &list[1];
+                            let body = &list[2];
                             unimplemented!();
                         }
                         _ => unreachable!(),
