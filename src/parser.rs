@@ -22,9 +22,9 @@ pub enum Atom {
 	Symbol(String),
 	Identifier(String),
 	Ratio { num: i64, den: i64 },
-	// TODO Lambda
-	// Func(Func),
-	Func(fn(&[Expr]) -> Result<Expr, String>),
+	// macros are built-in functions
+	Macro(fn(&[Expr]) -> Result<Expr, String>),
+	// lambdas are user-defined functions
 	Lambda(Lambda),
 	Nil,
 }
@@ -48,7 +48,7 @@ impl cmp::PartialEq for Atom {
 					den: r_den,
 				},
 			) => l_num == r_num && l_den == r_den,
-			(Atom::Func(left), Atom::Func(right)) => false, // TODO temporary, change this
+			(Atom::Macro(left), Atom::Macro(right)) => false, // TODO temporary, change this
 			(Atom::Lambda(left), Atom::Lambda(right)) => false, // TODO temporary, change this
 			(Atom::Nil, Atom::Nil) => true,
 			_ => false,
@@ -58,19 +58,9 @@ impl cmp::PartialEq for Atom {
 
 #[derive(Clone)]
 pub struct Lambda {
-	params: Box<Expr>,
+	params: Vec<String>,
 	body: Box<Expr>,
 	env: Rc<Env>,
-}
-
-impl Lambda {
-	pub fn new(params: Expr, body: Expr, outer: Env) -> Lambda {
-		Lambda {
-			params: Box::new(params),
-			body: Box::new(body),
-			env: Rc::new(outer),
-		}
-	}
 }
 
 impl fmt::Debug for Atom {
@@ -83,7 +73,7 @@ impl fmt::Debug for Atom {
 			Atom::Symbol(s) => write!(f, "{:?}", s),
 			Atom::Identifier(s) => write!(f, "{:?}", s),
 			Atom::Ratio { num, den } => write!(f, "{:?}/{:?}", num, den),
-			Atom::Func(func) => write!(f, "#{{core}}"),
+			Atom::Macro(func) => write!(f, "#{{core}}"),
 			Atom::Lambda(lambda) => write!(f, "#{{lambda}}"),
 			Atom::Nil => write!(f, "nil"),
 		}
@@ -100,7 +90,7 @@ impl fmt::Display for Atom {
 			Atom::Symbol(s) => write!(f, "{}", s),
 			Atom::Identifier(s) => write!(f, "{}", s),
 			Atom::Ratio { num, den } => write!(f, "{}/{}", num, den),
-			Atom::Func(func) => write!(f, "#{{core}}"),
+			Atom::Macro(func) => write!(f, "#{{core}}"),
 			Atom::Lambda(lambda) => write!(f, "#{{lambda}}"),
 			Atom::Nil => write!(f, "nil"),
 		}
@@ -301,10 +291,10 @@ impl Expr {
 		}
 	}
 
-	pub fn as_atom(&self) -> Atom {
+	pub fn as_atom(&self) -> Option<Atom> {
 		match self {
-			Expr::Atom(a) => a.clone(),
-			_ => panic!("expr is not an atom"),
+			Expr::Atom(a) => Some(a.clone()),
+			_ => None,
 		}
 	}
 }

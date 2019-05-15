@@ -42,17 +42,21 @@ impl Interpreter {
             Expr::List(list) => {
                 let first = &list[0];
 
+                // TODO add validation!!!
                 if is_list_special(first) {
                     match get_list_special(first).as_str() {
                         "if" => {
-                            if list[1..].len() > 2 {
+                            if list[1..].len() > 3 {
                                 return Err("too many arguments for if".to_string());
                             }
 
                             let cond = self.eval(list[1].clone())?;
 
                             if is_false_or_nil(&cond) {
-                                self.eval(list[3].clone())
+                                match list.get(3) {
+                                    Some(expr) => self.eval(expr.clone()),
+                                    None => Ok(Expr::Atom(Atom::Nil)),
+                                }
                             } else {
                                 self.eval(list[2].clone())
                             }
@@ -66,24 +70,28 @@ impl Interpreter {
                                 .unwrap()
                         }
                         "def" => {
-                            unimplemented!();
-                            // let first = &list[1];
+                            let first_atom = &list[1].as_atom();
+                            let symbol = match first_atom {
+                                Some(atom) => match atom {
+                                    Atom::Identifier(id) => id,
+                                    _ => {
+                                        return Err(
+                                            "first argument of def must be valid identifier"
+                                                .to_string(),
+                                        )
+                                    }
+                                },
+                                None => {
+                                    return Err("first argument of def must be valid identifier"
+                                        .to_string())
+                                }
+                            };
 
-                            // match first {
-                            //     Expr::Atom(a) => match a {
-                            //         Atom::Identifier(id) => {
-                            //         }
-                            //         _ => {
-                            //             return Err("first argument to def must be an identifier"
-                            //                 .to_string())
-                            //         }
-                            //     },
-                            //     _ => {
-                            //         return Err(
-                            //             "first argument to def must be an identifier".to_string()
-                            //         )
-                            //     }
-                            // }
+                            let def = self.eval(list[2].clone())?;
+
+                            self.env.borrow_mut().set(symbol, def.clone());
+
+                            Ok(def)
                         }
                         "let" => {
                             unimplemented!();
@@ -103,7 +111,7 @@ impl Interpreter {
 
                     match first_result {
                         Expr::Atom(a) => match a {
-                            Atom::Func(f) => {
+                            Atom::Macro(f) => {
                                 let args_eval: Result<Vec<Expr>, String> = args
                                     .iter()
                                     .map(|arg_expr| self.eval(arg_expr.clone()))
@@ -126,7 +134,7 @@ fn is_list_special(expr: &Expr) -> bool {
     match expr {
         Expr::Atom(a) => match a {
             Atom::Symbol(symbol) => match symbol.as_str() {
-                "if" | "do" | "fn" => true,
+                "if" | "do" | "fn" | "def" | "let" => true,
                 _ => false,
             },
             _ => false,
@@ -172,4 +180,82 @@ mod interpreter_test {
         assert!(result.is_ok());
         assert_eq!(Expr::Atom(Atom::Integer(24)), result.unwrap());
     }
+
+    #[test]
+    fn do_evals_all_returns_last() {
+        let parsed = DialParser::parse(Rule::list, "(do (+ 1 2) (+ 3 4) (* 5 6))").unwrap();
+        let expr = Expr::from(parsed);
+
+        let int = Interpreter::new();
+        let result = int.eval(expr);
+
+        assert!(result.is_ok());
+        assert_eq!(Expr::Atom(Atom::Integer(30)), result.unwrap());
+    }
+
+    #[test]
+    fn if_evals_true_expr_when_true() {
+        let parsed = DialParser::parse(Rule::list, r#"(if true "true" "false")"#).unwrap();
+        let expr = Expr::from(parsed);
+
+        let int = Interpreter::new();
+        let result = int.eval(expr);
+
+        assert!(result.is_ok());
+        assert_eq!(
+            Expr::Atom(Atom::String(String::from(r#""true""#))),
+            result.unwrap()
+        );
+    }
+
+    #[test]
+    fn if_evals_false_when_expr_false() {
+        let parsed = DialParser::parse(Rule::list, r#"(if false "true" "false")"#).unwrap();
+        let expr = Expr::from(parsed);
+
+        let int = Interpreter::new();
+        let result = int.eval(expr);
+
+        assert!(result.is_ok());
+        assert_eq!(
+            Expr::Atom(Atom::String(String::from(r#""false""#))),
+            result.unwrap()
+        );
+    }
+
+    #[test]
+    fn if_evals_false_when_expr_nil() {
+        let parsed = DialParser::parse(Rule::list, r#"(if nil "true" "false")"#).unwrap();
+        let expr = Expr::from(parsed);
+
+        let int = Interpreter::new();
+        let result = int.eval(expr);
+
+        assert!(result.is_ok());
+        assert_eq!(
+            Expr::Atom(Atom::String(String::from(r#""false""#))),
+            result.unwrap()
+        );
+    }
+
+    #[test]
+    fn def_assigns_value_and_persists() {
+        let parsed = DialParser::parse(Rule::list, r#"(do (def hello "world") hello)"#).unwrap();
+        let expr = Expr::from(parsed);
+
+        let int = Interpreter::new();
+        let result = int.eval(expr);
+
+        assert!(result.is_ok());
+        assert_eq!(
+            Expr::Atom(Atom::String(String::from(r#""world""#))),
+            result.unwrap()
+        );
+    }
+
+    #[test]
+    fn let_scopes_value() {}
+
+    #[test]
+    fn let_overrides_value() {}
 }

@@ -20,10 +20,10 @@ impl Env {
     pub fn default() -> Env {
         let mut map = HashMap::new();
 
-        map.insert(String::from("+"), Expr::Atom(Atom::Func(math::add)));
-        map.insert(String::from("-"), Expr::Atom(Atom::Func(math::sub)));
-        map.insert(String::from("*"), Expr::Atom(Atom::Func(math::mul)));
-        map.insert(String::from("/"), Expr::Atom(Atom::Func(math::div)));
+        map.insert(String::from("+"), Expr::Atom(Atom::Macro(math::add)));
+        map.insert(String::from("-"), Expr::Atom(Atom::Macro(math::sub)));
+        map.insert(String::from("*"), Expr::Atom(Atom::Macro(math::mul)));
+        map.insert(String::from("/"), Expr::Atom(Atom::Macro(math::div)));
 
         Env {
             symbol_map: RefCell::new(map),

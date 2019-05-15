@@ -3,6 +3,15 @@ use crate::interpreter::EvalResult;
 use crate::parser::{Atom, Expr};
 use std::ops::{Add, Div, Mul, Sub};
 
+impl Expr {
+    fn as_inner_atom(&self) -> Atom {
+        match self {
+            Expr::Atom(a) => a.clone(),
+            _ => panic!("not an atom"),
+        }
+    }
+}
+
 // TODO specify arity?
 pub fn add(args: &[Expr]) -> EvalResult {
     if args.is_empty() {
@@ -10,7 +19,7 @@ pub fn add(args: &[Expr]) -> EvalResult {
     } else {
         let sum = args
             .iter()
-            .fold(Atom::Integer(0), |sum, val| sum + val.as_atom());
+            .fold(Atom::Integer(0), |sum, val| sum + val.as_inner_atom());
 
         Ok(sum.into())
     }
@@ -20,15 +29,15 @@ pub fn sub(args: &[Expr]) -> EvalResult {
     match args.len() {
         0 => Err("not enough arguments".to_string()),
         1 => {
-            let result = Atom::from(0) - args[0].as_atom();
+            let result = Atom::from(0) - args[0].as_inner_atom();
             Ok(result.into())
         }
         _ => {
             let first = &args[0];
 
-            let diff = args[1..]
-                .iter()
-                .fold(first.as_atom(), |diff, val| diff - val.as_atom());
+            let diff = args[1..].iter().fold(first.as_inner_atom(), |diff, val| {
+                diff - val.as_inner_atom()
+            });
 
             Ok(diff.into())
         }
@@ -40,8 +49,10 @@ pub fn mul(args: &[Expr]) -> EvalResult {
         0 => Ok(1.into()),
         1 => Ok(args[0].clone()),
         _ => {
-            let first = args[0].as_atom().clone();
-            let product = args[1..].iter().fold(first, |sum, val| sum * val.as_atom());
+            let first = args[0].as_inner_atom().clone();
+            let product = args[1..]
+                .iter()
+                .fold(first, |sum, val| sum * val.as_inner_atom());
 
             Ok(product.into())
         }
@@ -52,15 +63,15 @@ pub fn div(args: &[Expr]) -> EvalResult {
     match args.len() {
         0 => Err("not enough arguments".to_string()),
         1 => {
-            let result = Atom::from(1) / args[0].as_atom();
+            let result = Atom::from(1) / args[0].as_inner_atom();
             Ok(result.into())
         }
         _ => {
             let first = &args[0];
 
-            let diff = args[1..]
-                .iter()
-                .fold(first.as_atom(), |diff, val| diff / val.as_atom());
+            let diff = args[1..].iter().fold(first.as_inner_atom(), |diff, val| {
+                diff / val.as_inner_atom()
+            });
 
             Ok(diff.into())
         }

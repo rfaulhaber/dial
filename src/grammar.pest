@@ -25,7 +25,7 @@ nil = { "nil" }
 // strings
 
 // stole this from the pest book
-string = ${ "\"" ~ inner ~ "\"" }
+string = ${ "\"" ~ string_inner ~ "\"" }
 string_inner = @{ char* }
 char = {
     !("\"" | "\\") ~ ANY
@@ -57,7 +57,7 @@ list = { "(" ~ (atom | list)+ ~ ")" }
 // clojure-like vectors
 vector = {
     "[" ~ "]" |
-    "[" ~ atom  ~ ("," ~ atom)* ~ "]"
+    "[" ~ atom* ~ "]"
 }
 
 repl_line = _{ atom+ | list+ }
