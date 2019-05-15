@@ -22,6 +22,7 @@ impl Repl {
             match readline {
                 Ok(line) => {
                     if !line.is_empty() {
+                        rl.add_history_entry(line.as_ref());
                         let parsed = DialParser::parse(Rule::repl_line, line.as_str());
 
                         match parsed {
