@@ -305,6 +305,13 @@ impl Expr {
 		}
 	}
 
+	pub fn is_vector(&self) -> bool {
+		match self {
+			Expr::Vector(_) => true,
+			_ => false,
+		}
+	}
+
 	pub fn into_iter(&self) -> ExprIter {
 		match self {
 			Expr::List(l) => ExprIter {

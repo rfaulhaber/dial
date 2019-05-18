@@ -110,7 +110,32 @@ impl Interpreter {
 
                             Ok(def)
                         }
-                        "let" => unimplemented!(),
+                        "let" => {
+                            // TODO validate
+                            let bindings = match &list[1] {
+                                Expr::Vector(vec) => vec,
+                                _ => return Err("let bindings must be a vector".to_string()),
+                            };
+
+                            if bindings.len() % 2 != 0 {
+                                return Err("let bindings must be even".to_string());
+                            }
+
+                            self.push_scope();
+
+                            for (symbol, value) in BindingIterator::from(bindings.clone()) {
+                                self.env.borrow_mut().set(&symbol, value);
+                            }
+
+                            // TODO validate
+                            let body = list[2].clone();
+
+                            let result = self.eval(body);
+
+                            self.pop_scope();
+
+                            result
+                        }
                         "fn" => {
                             // TODO validation on list size
                             let params = &list[1];
@@ -147,6 +172,14 @@ impl Interpreter {
     fn eval_let(&self, expr: Expr) -> EvalResult {
         unimplemented!();
     }
+
+    fn push_scope(&self) {
+        self.env = RefCell::new(self.env.borrow_mut().push_scope());
+    }
+
+    fn pop_scope(&self) {
+        self.env = RefCell::new(self.env.borrow_mut().pop_scope().unwrap());
+    }
 }
 
 fn is_list_special(expr: &Expr) -> bool {
@@ -180,6 +213,40 @@ fn is_false_or_nil(expr: &Expr) -> bool {
             _ => false,
         },
         _ => false,
+    }
+}
+
+struct BindingIterator {
+    vector: Vec<Expr>,
+}
+
+impl From<Vec<Expr>> for BindingIterator {
+    fn from(exprs: Vec<Expr>) -> Self {
+        BindingIterator {
+            vector: exprs.clone(),
+        }
+    }
+}
+
+impl Iterator for BindingIterator {
+    type Item = (String, Expr);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let take = self.vector.iter().take(2);
+        let symbol = match take.next() {
+            Some(expr) => match expr {
+                Expr::Atom(a) => match a {
+                    Atom::Identifier(id) => id,
+                    _ => unreachable!(),
+                },
+                _ => unreachable!(),
+            },
+            None => return None,
+        };
+
+        let expr = take.next().unwrap();
+
+        Some((symbol.to_string(), expr.clone()))
     }
 }
 
