@@ -3,8 +3,8 @@
 // TODO generalize such that the grammar is basically just a list of exprs
 
 // pest basics
-WHITESPACE = _{ " " | "\t" }
-COMMENT = @{ ";" ~ ANY* }
+COMMENT = _{ ";" ~ (!NEWLINE ~ ANY)* }
+WHITESPACE = _{ " " | "\t" | "\\" ~ NEWLINE }
 
 // numbers
 int = @{ "-"? ~ ASCII_DIGIT+ }
@@ -43,7 +43,7 @@ boolean = @{ "true" | "false" }
 identifier = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "-" | "_" | "!" | "$" | "%" | "*" | "^" | "+")+? }
 
 // pre-defined function names
-keyword = _{  "quote" | "atom" | "eq" | "cons" | "cond" | "car" | "cdr" | "list" | "if" | "do" | "def" | "let" }
+keyword = _{  "quote" | "atom" | "eq" | "cons" | "cond" | "car" | "cdr" | "list" | "if" | "do" | "def" | "let" | "vector" }
 
 // tokens are pre-defined, built-in functions 
 token = @{ operator | keyword }
@@ -52,12 +52,14 @@ token = @{ operator | keyword }
 atom = { nil | number | boolean | string | token | identifier }
 
 // lists
-list = { "(" ~ (atom | list)+ ~ ")" }
+list = { "(" ~ ")" | "(" ~ (atom | list)+ ~ ")" }
 
 // clojure-like vectors
 vector = {
     "[" ~ "]" |
-    "[" ~ atom* ~ "]"
+    "[" ~ (atom | list)* ~ "]"
 }
 
-repl_line = _{ atom+ | list+ }
+expr = _{ atom | list | vector }
+
+repl_line = _{ expr+ }

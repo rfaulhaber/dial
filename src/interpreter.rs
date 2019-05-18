@@ -39,7 +39,24 @@ impl Interpreter {
                 }
                 _ => Ok(atom.into()),
             },
+            Expr::Vector(vec) => {
+                if vec.is_empty() {
+                    return Ok(Expr::Vector(Vec::new()));
+                }
+
+                let vec_eval: Result<Vec<Expr>, String> =
+                    vec.iter().map(|expr| self.eval(expr.clone())).collect();
+
+                match vec_eval {
+                    Ok(exprs) => Ok(Expr::Vector(exprs)),
+                    Err(err) => Err(err),
+                }
+            }
             Expr::List(list) => {
+                if list.is_empty() {
+                    return Ok(Expr::List(Vec::new()));
+                }
+
                 let first = &list[0];
 
                 // TODO add validation!!!
@@ -93,9 +110,7 @@ impl Interpreter {
 
                             Ok(def)
                         }
-                        "let" => {
-                            unimplemented!();
-                        }
+                        "let" => unimplemented!(),
                         "fn" => {
                             // TODO validation on list size
                             let params = &list[1];
@@ -127,6 +142,10 @@ impl Interpreter {
                 }
             }
         }
+    }
+
+    fn eval_let(&self, expr: Expr) -> EvalResult {
+        unimplemented!();
     }
 }
 

@@ -131,6 +131,7 @@ impl From<&str> for Atom {
 pub enum Expr {
 	Atom(Atom),
 	List(Vec<Expr>),
+	Vector(Vec<Expr>),
 }
 
 impl fmt::Display for Expr {
@@ -148,6 +149,19 @@ impl fmt::Display for Expr {
 
 				write!(f, "({})", out_str)
 			}
+			Expr::Vector(v) => {
+				let mut out_str = String::new();
+
+				let mut out_str = String::new();
+
+				for expr in v {
+					out_str.push_str(format!("{} ", expr).as_str());
+				}
+
+				out_str.pop();
+
+				write!(f, "[{}]", out_str)
+			}
 		}
 	}
 }
@@ -157,6 +171,19 @@ impl cmp::PartialEq for Expr {
 		match (self, other) {
 			(Expr::Atom(left), Expr::Atom(right)) => left == right,
 			(Expr::List(left), Expr::List(right)) => {
+				if left.len() == right.len() {
+					for (left_item, right_item) in left.iter().zip(right.iter()) {
+						if left_item != right_item {
+							return false;
+						}
+					}
+
+					true
+				} else {
+					false
+				}
+			}
+			(Expr::Vector(left), Expr::Vector(right)) => {
 				if left.len() == right.len() {
 					for (left_item, right_item) in left.iter().zip(right.iter()) {
 						if left_item != right_item {
@@ -303,9 +330,12 @@ fn parse_pair(pair: Pair<Rule>) -> Expr {
 	match pair.as_rule() {
 		Rule::atom => parse_atom(pair),
 		Rule::list => {
-			let mut inner = pair.into_inner();
-
+			let inner = pair.into_inner();
 			Expr::List(inner.map(parse_pair).collect())
+		}
+		Rule::vector => {
+			let inner = pair.into_inner();
+			Expr::Vector(inner.map(parse_pair).collect())
 		}
 		_ => unreachable!(),
 	}
