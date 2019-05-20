@@ -8,21 +8,21 @@ use std::error;
 pub type EvalResult = Result<Expr, String>;
 
 pub struct Interpreter {
-    env: RefCell<Env>,
+    env: Env,
 }
 
 impl Interpreter {
     pub fn new() -> Interpreter {
         Interpreter {
-            env: RefCell::new(Env::default()),
+            env: Env::default(),
         }
     }
 
-    pub fn eval(&self, expr: Expr) -> EvalResult {
+    pub fn eval(&mut self, expr: Expr) -> EvalResult {
         match expr {
             Expr::Atom(atom) => match atom {
                 Atom::Symbol(symbol) => {
-                    let lookup = self.env.borrow().get(&symbol);
+                    let lookup = self.env.get(&symbol);
 
                     match lookup {
                         Some(result) => Ok(result),
@@ -30,7 +30,7 @@ impl Interpreter {
                     }
                 }
                 Atom::Identifier(id) => {
-                    let lookup = self.env.borrow().get(&id);
+                    let lookup = self.env.get(&id);
 
                     match lookup {
                         Some(result) => Ok(result),
@@ -106,7 +106,7 @@ impl Interpreter {
 
                             let def = self.eval(list[2].clone())?;
 
-                            self.env.borrow_mut().set(symbol, def.clone());
+                            self.env.set(symbol, def.clone());
 
                             Ok(def)
                         }
@@ -117,14 +117,21 @@ impl Interpreter {
                                 _ => return Err("let bindings must be a vector".to_string()),
                             };
 
+                            info!("bindings: {:?}", bindings);
+
                             if bindings.len() % 2 != 0 {
                                 return Err("let bindings must be even".to_string());
                             }
 
+                            info!("pushing scope");
+
                             self.push_scope();
 
-                            for (symbol, value) in BindingIterator::from(bindings.clone()) {
-                                self.env.borrow_mut().set(&symbol, value);
+                            let mut iter = BindingIterator::from(bindings.clone());
+
+                            for (symbol, value) in iter {
+                                info!("binding symbol {:?} to value {:?}", symbol, value);
+                                self.env.set(&symbol, value);
                             }
 
                             // TODO validate
@@ -132,6 +139,7 @@ impl Interpreter {
 
                             let result = self.eval(body);
 
+                            info!("popping scope");
                             self.pop_scope();
 
                             result
@@ -169,16 +177,19 @@ impl Interpreter {
         }
     }
 
+    fn push_scope(&mut self) {
+        self.env = self.env.push_scope();
+    }
+
+    fn pop_scope(&mut self) {
+        self.env = match self.env.pop_scope() {
+            Some(scope) => scope,
+            None => Env::default(),
+        }
+    }
+
     fn eval_let(&self, expr: Expr) -> EvalResult {
         unimplemented!();
-    }
-
-    fn push_scope(&self) {
-        self.env = RefCell::new(self.env.borrow_mut().push_scope());
-    }
-
-    fn pop_scope(&self) {
-        self.env = RefCell::new(self.env.borrow_mut().pop_scope().unwrap());
     }
 }
 
@@ -232,7 +243,10 @@ impl Iterator for BindingIterator {
     type Item = (String, Expr);
 
     fn next(&mut self) -> Option<Self::Item> {
-        let take = self.vector.iter().take(2);
+        // TODO please add some kind of validation!!
+
+        let old_vec = self.vector.clone();
+        let mut take = old_vec.iter().take(2);
         let symbol = match take.next() {
             Some(expr) => match expr {
                 Expr::Atom(a) => match a {
@@ -245,6 +259,8 @@ impl Iterator for BindingIterator {
         };
 
         let expr = take.next().unwrap();
+
+        self.vector = self.vector[2..].to_vec();
 
         Some((symbol.to_string(), expr.clone()))
     }
@@ -260,7 +276,7 @@ mod interpreter_test {
         let parsed = DialParser::parse(Rule::list, "(* 2 (+ 3 4 5))").unwrap();
         let expr = Expr::from(parsed);
 
-        let int = Interpreter::new();
+        let mut int = Interpreter::new();
         let result = int.eval(expr);
 
         assert!(result.is_ok());
@@ -272,7 +288,7 @@ mod interpreter_test {
         let parsed = DialParser::parse(Rule::list, "(do (+ 1 2) (+ 3 4) (* 5 6))").unwrap();
         let expr = Expr::from(parsed);
 
-        let int = Interpreter::new();
+        let mut int = Interpreter::new();
         let result = int.eval(expr);
 
         assert!(result.is_ok());
@@ -284,7 +300,7 @@ mod interpreter_test {
         let parsed = DialParser::parse(Rule::list, r#"(if true "true" "false")"#).unwrap();
         let expr = Expr::from(parsed);
 
-        let int = Interpreter::new();
+        let mut int = Interpreter::new();
         let result = int.eval(expr);
 
         assert!(result.is_ok());
@@ -299,7 +315,7 @@ mod interpreter_test {
         let parsed = DialParser::parse(Rule::list, r#"(if false "true" "false")"#).unwrap();
         let expr = Expr::from(parsed);
 
-        let int = Interpreter::new();
+        let mut int = Interpreter::new();
         let result = int.eval(expr);
 
         assert!(result.is_ok());
@@ -314,7 +330,7 @@ mod interpreter_test {
         let parsed = DialParser::parse(Rule::list, r#"(if nil "true" "false")"#).unwrap();
         let expr = Expr::from(parsed);
 
-        let int = Interpreter::new();
+        let mut int = Interpreter::new();
         let result = int.eval(expr);
 
         assert!(result.is_ok());
@@ -329,7 +345,7 @@ mod interpreter_test {
         let parsed = DialParser::parse(Rule::list, r#"(do (def hello "world") hello)"#).unwrap();
         let expr = Expr::from(parsed);
 
-        let int = Interpreter::new();
+        let mut int = Interpreter::new();
         let result = int.eval(expr);
 
         assert!(result.is_ok());
@@ -337,6 +353,18 @@ mod interpreter_test {
             Expr::Atom(Atom::String(String::from(r#""world""#))),
             result.unwrap()
         );
+    }
+
+    #[test]
+    fn let_creates_temporary_binding() {
+        let parsed = DialParser::parse(Rule::list, "(let [c 2] c)").unwrap();
+        let expr = Expr::from(parsed);
+
+        let mut int = Interpreter::new();
+        let result = int.eval(expr);
+
+        assert!(result.is_ok());
+        assert_eq!(Expr::Atom(Atom::Integer(2)), result.unwrap());
     }
 
     #[test]

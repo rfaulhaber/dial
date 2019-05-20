@@ -52,7 +52,7 @@ token = @{ operator | keyword }
 atom = { nil | number | boolean | string | token | identifier }
 
 // lists
-list = { "(" ~ ")" | "(" ~ (atom | list)+ ~ ")" }
+list = { "(" ~ ")" | "(" ~ (expr)+ ~ ")" }
 
 // clojure-like vectors
 vector = {

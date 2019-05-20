@@ -152,8 +152,6 @@ impl fmt::Display for Expr {
 			Expr::Vector(v) => {
 				let mut out_str = String::new();
 
-				let mut out_str = String::new();
-
 				for expr in v {
 					out_str.push_str(format!("{} ", expr).as_str());
 				}
