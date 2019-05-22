@@ -56,13 +56,6 @@ impl cmp::PartialEq for Atom {
 	}
 }
 
-#[derive(Clone)]
-pub struct Lambda {
-	params: Vec<String>,
-	body: Box<Expr>,
-	env: Rc<Env>,
-}
-
 impl fmt::Debug for Atom {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		match self {
@@ -364,6 +357,18 @@ fn parse_atom(pair: Pair<Rule>) -> Expr {
 		Rule::token => Atom::Symbol(String::from(item.as_str())).into(),
 		Rule::identifier => Atom::Identifier(String::from(item.as_str())).into(),
 		_ => unreachable!(),
+	}
+}
+
+#[derive(Clone)]
+pub struct Lambda {
+	params: Vec<String>,
+	body: Box<Expr>,
+}
+
+impl Lambda {
+	pub fn new(params: Vec<String>, body: Box<Expr>) -> Lambda {
+		Lambda { params, body }
 	}
 }
 

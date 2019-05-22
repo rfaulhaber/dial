@@ -1,5 +1,5 @@
 // use super::core::{get_builtin, BuiltinFunc};
-use super::parser::{Atom, DialParser, Expr, Rule};
+use super::parser::{Atom, DialParser, Expr, Lambda, Rule};
 use crate::environment::env::Env;
 use log::Level;
 use std::cell::RefCell;
@@ -127,7 +127,7 @@ impl Interpreter {
 
                             self.push_scope();
 
-                            let mut iter = BindingIterator::from(bindings.clone());
+                            let iter = BindingIterator::from(bindings.clone());
 
                             for (symbol, value) in iter {
                                 info!("binding symbol {:?} to value {:?}", symbol, value);
@@ -146,8 +146,9 @@ impl Interpreter {
                         }
                         "fn" => {
                             // TODO validation on list size
-                            let params = &list[1];
+                            let bindings = &list[1];
                             let body = &list[2];
+
                             unimplemented!();
                         }
                         _ => unreachable!(),
@@ -224,6 +225,13 @@ fn is_false_or_nil(expr: &Expr) -> bool {
             _ => false,
         },
         _ => false,
+    }
+}
+
+fn unwrap_atom_from_expr(expr: Expr) -> Result<Atom, &'static str> {
+    match expr {
+        Expr::Atom(a) => Ok(a),
+        _ => Err("expr is not atom"),
     }
 }
 

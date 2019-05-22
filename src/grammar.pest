@@ -60,6 +60,16 @@ vector = {
     "[" ~ (atom | list)* ~ "]"
 }
 
+let_vector = {
+    "[" ~ "]" |
+    "[" ~ (identifier ~ expr)* ~ "]"
+}
+
+fn_vector = {
+    "[" ~ "]" |
+    "[" ~ identifier* ~ "]"
+}
+
 expr = _{ atom | list | vector }
 
 repl_line = _{ expr+ }
