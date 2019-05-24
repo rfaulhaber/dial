@@ -20,6 +20,7 @@ impl Interpreter {
         }
     }
 
+    // TODO please god make this method shorter
     pub fn eval(&mut self, expr: Expr) -> EvalResult {
         match expr {
             Expr::Atom(atom) => match atom {
@@ -153,6 +154,7 @@ impl Interpreter {
                                     .iter()
                                     .map(|expr| unwrap_atom_from_expr(expr.clone()))
                                     .collect();
+
                             let bindings_strings: Result<Vec<String>, &'static str> =
                                 bindings_atoms?
                                     .iter()
@@ -185,7 +187,26 @@ impl Interpreter {
 
                                 f(&args_eval?)
                             }
-                            Atom::Lambda(l) => Err("lambda lookups are unimplemented".to_string()), // do user-defined lookup
+                            Atom::Lambda(l) => {
+                                let Lambda { params, body } = l;
+
+                                let args_eval: Result<Vec<Expr>, String> = args
+                                    .iter()
+                                    .map(|arg_expr| self.eval(arg_expr.clone()))
+                                    .collect();
+
+                                self.push_scope();
+
+                                for (symbol, arg_eval) in params.iter().zip(args_eval?.iter()) {
+                                    self.env.set(&symbol, arg_eval.clone());
+                                }
+
+                                let body_eval = self.eval(*body);
+
+                                self.pop_scope();
+
+                                body_eval
+                            }
                             _ => Err("invalid form".to_string()),
                         },
                         _ => Err("invalid form".to_string()),

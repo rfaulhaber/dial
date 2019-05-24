@@ -368,8 +368,8 @@ fn parse_atom(pair: Pair<Rule>) -> Expr {
 
 #[derive(Clone)]
 pub struct Lambda {
-	params: Vec<String>,
-	body: Box<Expr>,
+	pub params: Vec<String>,
+	pub body: Box<Expr>,
 }
 
 impl Lambda {
