@@ -1,7 +1,14 @@
-use super::math;
+use super::{core, math};
 use crate::parser::{Atom, Expr};
 use std::cell::RefCell;
 use std::collections::HashMap;
+
+// my first macro!
+macro_rules! def {
+    ($x:expr, $y:expr, $z:expr) => {
+        $x.insert(String::from($y), Expr::Atom(Atom::Macro($z)));
+    };
+}
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Env {
@@ -20,10 +27,11 @@ impl Env {
     pub fn default() -> Env {
         let mut map = HashMap::new();
 
-        map.insert(String::from("+"), Expr::Atom(Atom::Macro(math::add)));
-        map.insert(String::from("-"), Expr::Atom(Atom::Macro(math::sub)));
-        map.insert(String::from("*"), Expr::Atom(Atom::Macro(math::mul)));
-        map.insert(String::from("/"), Expr::Atom(Atom::Macro(math::div)));
+        def!(map, "+", math::add);
+        def!(map, "-", math::sub);
+        def!(map, "*", math::mul);
+        def!(map, "/", math::div);
+        def!(map, "list", core::list);
 
         Env {
             symbol_map: RefCell::new(map),
