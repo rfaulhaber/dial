@@ -237,6 +237,12 @@ impl From<&str> for Expr {
 	}
 }
 
+impl From<Lambda> for Expr {
+	fn from(l: Lambda) -> Self {
+		Expr::Atom(Atom::Lambda(l))
+	}
+}
+
 impl<'a> From<Pair<'a, Rule>> for Expr {
 	fn from(pair: Pair<'a, Rule>) -> Self {
 		parse_pair(pair)

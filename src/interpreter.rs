@@ -5,6 +5,8 @@ use log::Level;
 use std::cell::RefCell;
 use std::error;
 
+// TODO remove all direct vector references, safely use .get() instead
+
 pub type EvalResult = Result<Expr, String>;
 
 pub struct Interpreter {
@@ -146,10 +148,25 @@ impl Interpreter {
                         }
                         "fn" => {
                             // TODO validation on list size
-                            let bindings = &list[1];
-                            let body = &list[2];
+                            let bindings_atoms: Result<Vec<Atom>, &'static str> =
+                                extract_vec_from_expr(list[1].clone())?
+                                    .iter()
+                                    .map(|expr| unwrap_atom_from_expr(expr.clone()))
+                                    .collect();
+                            let bindings_strings: Result<Vec<String>, &'static str> =
+                                bindings_atoms?
+                                    .iter()
+                                    .map(|atom| match atom {
+                                        Atom::Identifier(id) => Ok(id.clone()),
+                                        _ => Err("invalid identifier"),
+                                    })
+                                    .collect();
 
-                            unimplemented!();
+                            let body = Box::new(list[2].clone());
+
+                            let lambda = Lambda::new(bindings_strings?, body);
+
+                            Ok(Expr::from(lambda))
                         }
                         _ => unreachable!(),
                     }
@@ -232,6 +249,13 @@ fn unwrap_atom_from_expr(expr: Expr) -> Result<Atom, &'static str> {
     match expr {
         Expr::Atom(a) => Ok(a),
         _ => Err("expr is not atom"),
+    }
+}
+
+fn extract_vec_from_expr(expr: Expr) -> Result<Vec<Expr>, &'static str> {
+    match expr {
+        Expr::Vector(vec) => Ok(vec),
+        _ => Err("expr is not vector"),
     }
 }
 
