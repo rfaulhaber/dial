@@ -40,10 +40,10 @@ symbol = @{ ":" ~  string_inner }
 boolean = @{ "true" | "false" }
 
 // identifiers are user-defined values associated to a name
-identifier = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "-" | "_" | "!" | "$" | "%" | "*" | "^" | "+")+? }
+identifier = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "-" | "_" | "!" | "?" | "$" | "%" | "*" | "^" | "+")+? }
 
 // pre-defined function names
-keyword = _{  "quote" | "atom" | "eq" | "cons" | "cond" | "car" | "cdr" | "list" | "if" | "do" | "def" | "let" | "vector" | "fn" }
+keyword = _{  "quote" | "atom" | "eq" | "cons" | "cond" | "car" | "cdr" | "if" | "do" | "def" | "let" | "vector" | "fn" }
 
 // tokens are pre-defined, built-in functions 
 token = @{ operator | keyword }

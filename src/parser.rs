@@ -6,6 +6,8 @@ use std::cmp;
 use std::fmt;
 use std::rc::Rc;
 
+// TODO refactor using this: https://doc.rust-lang.org/book/ch18-03-pattern-syntax.html#destructuring-nested-structs-and-enums
+
 #[derive(Parser)]
 #[grammar = "./grammar.pest"]
 pub struct DialParser;

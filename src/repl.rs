@@ -2,6 +2,7 @@ use super::interpreter::{EvalResult, Interpreter};
 use super::parser::{DialParser, Expr, Rule};
 use log::Level;
 use pest::Parser;
+use pest::error;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 use std::time::Instant;
@@ -45,7 +46,10 @@ impl Repl {
                                 exprs.for_each(print_eval_result);
                             }
                             // TODO make smarter
-                            Err(err) => println!("error encountered in parsing: {:?}", err),
+                            Err(err) => match err {
+                                pest::error::Error{..}=> eprintln!("parsing error encountered: {:?}", err),
+                                _ => eprintln!("err: {:?}", err),
+                            }
                         }
                     }
                 }

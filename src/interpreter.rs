@@ -6,6 +6,7 @@ use std::cell::RefCell;
 use std::error;
 
 // TODO remove all direct vector references, safely use .get() instead
+// TODO refactor using this: https://doc.rust-lang.org/book/ch18-03-pattern-syntax.html#destructuring-nested-structs-and-enums
 
 pub type EvalResult = Result<Expr, String>;
 
