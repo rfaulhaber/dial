@@ -13,11 +13,18 @@ float = @{ "-"? ~ ASCII_DIGIT* ~ "." ~ ASCII_DIGIT+ }
 number = _{ float | int }
 
 // operators and basic math
-operator = _{ add | sub | mul | div }
+operator = _{ add | sub | mul | div | cmp }
 add      = { "+" }
 sub 	 = { "-" }
 mul 	 = { "*" }
 div      = { "/" }
+
+cmp = _ { gt | ge | lt | le | eq }
+gt = { ">" }
+ge = { ">=" }
+lt = { "<" }
+le = { "<=" }
+eq = { "=" }
 
 // nil
 nil = { "nil" }

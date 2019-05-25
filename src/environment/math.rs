@@ -81,15 +81,39 @@ pub fn div(args: &[Expr]) -> EvalResult {
 }
 
 pub fn gt(args: &[Expr]) -> EvalResult {
-    match &args[0].as_inner_atom().partial_cmp(&args[1].as_inner_atom()) {
-        Some(Ordering::Equal) | Some(Ordering::Less) => Ok(false.into()),
-        Some(Ordering::Greater) => Ok(true.into()),
-        None => Err("cannot compare these two types".to_string()),
+    // match &args[0].as_inner_atom().partial_cmp(&args[1].as_inner_atom()) {
+    //     Some(Ordering::Equal) | Some(Ordering::Less) => Ok(false.into()),
+    //     Some(Ordering::Greater) => Ok(true.into()),
+    //     None => Err("cannot compare these two types".to_string()),
+    // }
+
+    match args.len() {
+        0 => Err("wrong number of args".to_string()),
+        1 => Ok(true.into()),
+        _ => {
+            let atom_vec = args.iter().map(|expr| expr.as_inner_atom()).collect();
+            let iter = PairIter::new(atom_vec);
+
+            let mut ret = true;
+            // TODO rewrite with closures
+            for (left, right) in iter {
+                match right {
+                    Some(val) => ret = ret && (left.partial_cmp(&val) == Some(Ordering::Greater)),
+                    None => ret = ret && true,
+                }
+            }
+
+            Ok(ret.into())
+        }
     }
+
 }
 
 pub fn ge(args: &[Expr]) -> EvalResult {
-    match &args[0].as_inner_atom().partial_cmp(&args[1].as_inner_atom()) {
+    match &args[0]
+        .as_inner_atom()
+        .partial_cmp(&args[1].as_inner_atom())
+    {
         Some(Ordering::Equal) | Some(Ordering::Greater) => Ok(true.into()),
         Some(Ordering::Less) => Ok(false.into()),
         None => Err("cannot compare these two types".to_string()),
@@ -97,7 +121,14 @@ pub fn ge(args: &[Expr]) -> EvalResult {
 }
 
 pub fn lt(args: &[Expr]) -> EvalResult {
-    unimplemented!();
+    match &args[0]
+        .as_inner_atom()
+        .partial_cmp(&args[1].as_inner_atom())
+    {
+        Some(Ordering::Equal) | Some(Ordering::Greater) => Ok(true.into()),
+        Some(Ordering::Less) => Ok(false.into()),
+        None => Err("cannot compare these two types".to_string()),
+    }
 }
 
 pub fn le(args: &[Expr]) -> EvalResult {
@@ -292,6 +323,38 @@ fn gcd(a: i64, b: i64) -> i64 {
     }
 
     gcd(b, a % b)
+}
+
+struct PairIter<T> {
+    elements: Vec<T>,
+}
+
+impl<T> PairIter<T> {
+    fn new(elements: Vec<T>) -> PairIter<T> {
+        PairIter { elements }
+    }
+}
+
+impl<T> Iterator for PairIter<T>
+where
+    T: std::clone::Clone,
+{
+    type Item = (T, Option<T>);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let mut first_two = self.elements.iter().take(2);
+
+        let result = match (first_two.next(), first_two.next()) {
+            (Some(first), Some(second)) => Some((first.clone(), Some(second.clone()))),
+            (Some(first), None) => Some((first.clone(), None)),
+            _ => None,
+        };
+
+        // TODO fix index error
+        self.elements = self.elements[2..].to_vec();
+
+        result
+    }
 }
 
 #[cfg(test)]

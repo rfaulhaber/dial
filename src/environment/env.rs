@@ -34,6 +34,7 @@ impl Env {
         def!(map, "list", core::list);
         def!(map, "list?", core::is_list);
         def!(map, "empty?", core::is_empty);
+        def!(map, ">", math::gt);
 
         Env {
             symbol_map: RefCell::new(map),
