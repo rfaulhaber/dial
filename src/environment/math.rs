@@ -1,6 +1,8 @@
 #![allow(clippy::suspicious_arithmetic_impl)]
 use crate::interpreter::EvalResult;
 use crate::parser::{Atom, Expr};
+
+use std::cmp::{Ordering, PartialOrd};
 use std::ops::{Add, Div, Mul, Sub};
 
 impl Expr {
@@ -76,6 +78,34 @@ pub fn div(args: &[Expr]) -> EvalResult {
             Ok(diff.into())
         }
     }
+}
+
+pub fn gt(args: &[Expr]) -> EvalResult {
+    match &args[0].as_inner_atom().partial_cmp(&args[1].as_inner_atom()) {
+        Some(Ordering::Equal) | Some(Ordering::Less) => Ok(false.into()),
+        Some(Ordering::Greater) => Ok(true.into()),
+        None => Err("cannot compare these two types".to_string()),
+    }
+}
+
+pub fn ge(args: &[Expr]) -> EvalResult {
+    match &args[0].as_inner_atom().partial_cmp(&args[1].as_inner_atom()) {
+        Some(Ordering::Equal) | Some(Ordering::Greater) => Ok(true.into()),
+        Some(Ordering::Less) => Ok(false.into()),
+        None => Err("cannot compare these two types".to_string()),
+    }
+}
+
+pub fn lt(args: &[Expr]) -> EvalResult {
+    unimplemented!();
+}
+
+pub fn le(args: &[Expr]) -> EvalResult {
+    unimplemented!();
+}
+
+pub fn eq(args: &[Expr]) -> EvalResult {
+    unimplemented!();
 }
 
 impl Add for Atom {
@@ -203,6 +233,29 @@ impl Div for Atom {
                 Atom::Ratio { num, den },
             ) => new_ratio(lnum * den, lden * num),
             _ => panic!("division not defined for this type"),
+        }
+    }
+}
+
+impl PartialOrd for Atom {
+    fn partial_cmp(&self, other: &Atom) -> Option<Ordering> {
+        // TODO fill out types
+        match (self, other) {
+            (Atom::Integer(a), Atom::Integer(b)) => Some(a.cmp(b)),
+            (Atom::Float(a), Atom::Float(b)) => a.partial_cmp(b),
+            (
+                Atom::Ratio {
+                    num: lnum,
+                    den: lden,
+                },
+                Atom::Ratio { num, den },
+            ) => {
+                let left = (*lnum as f64) / (*lden as f64);
+                let right = (*num as f64) / (*den as f64);
+
+                left.partial_cmp(&right)
+            }
+            _ => None,
         }
     }
 }
