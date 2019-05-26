@@ -31,10 +31,14 @@ impl Env {
         def!(map, "-", math::sub);
         def!(map, "*", math::mul);
         def!(map, "/", math::div);
+        def!(map, ">", math::gt);
+        def!(map, ">=", math::ge);
+        def!(map, "<", math::lt);
+        def!(map, "<=", math::le);
+        def!(map, "=", math::eq);
         def!(map, "list", core::list);
         def!(map, "list?", core::is_list);
         def!(map, "empty?", core::is_empty);
-        def!(map, ">", math::gt);
 
         Env {
             symbol_map: RefCell::new(map),

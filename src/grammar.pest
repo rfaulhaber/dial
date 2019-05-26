@@ -13,13 +13,13 @@ float = @{ "-"? ~ ASCII_DIGIT* ~ "." ~ ASCII_DIGIT+ }
 number = _{ float | int }
 
 // operators and basic math
-operator = _{ add | sub | mul | div | cmp }
+operator = _{ add | sub | mul | div }
 add      = { "+" }
 sub 	 = { "-" }
 mul 	 = { "*" }
 div      = { "/" }
 
-cmp = _ { gt | ge | lt | le | eq }
+cmp = _{ ge | gt | le | lt | eq }
 gt = { ">" }
 ge = { ">=" }
 lt = { "<" }
@@ -53,7 +53,7 @@ identifier = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "-" | "_" | "!" | "?" | "$" 
 keyword = _{  "quote" | "atom" | "eq" | "cons" | "cond" | "car" | "cdr" | "if" | "do" | "def" | "let" | "vector" | "fn" }
 
 // tokens are pre-defined, built-in functions 
-token = @{ operator | keyword }
+token = { operator | cmp | keyword }
 
 // atoms
 atom = { nil | number | boolean | string | token | identifier }

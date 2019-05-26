@@ -80,63 +80,87 @@ pub fn div(args: &[Expr]) -> EvalResult {
     }
 }
 
-pub fn gt(args: &[Expr]) -> EvalResult {
-    // match &args[0].as_inner_atom().partial_cmp(&args[1].as_inner_atom()) {
-    //     Some(Ordering::Equal) | Some(Ordering::Less) => Ok(false.into()),
-    //     Some(Ordering::Greater) => Ok(true.into()),
-    //     None => Err("cannot compare these two types".to_string()),
-    // }
+// TODO generalize these!
 
+pub fn gt(args: &[Expr]) -> EvalResult {
     match args.len() {
         0 => Err("wrong number of args".to_string()),
         1 => Ok(true.into()),
         _ => {
-            let atom_vec = args.iter().map(|expr| expr.as_inner_atom()).collect();
-            let iter = PairIter::new(atom_vec);
-
-            let mut ret = true;
-            // TODO rewrite with closures
-            for (left, right) in iter {
-                match right {
-                    Some(val) => ret = ret && (left.partial_cmp(&val) == Some(Ordering::Greater)),
-                    None => ret = ret && true,
-                }
-            }
+            let atom_vec: Vec<Atom> = args.iter().map(|expr| expr.as_inner_atom()).collect();
+            let ret = atom_vec
+                .windows(2)
+                .all(|window| window[0].partial_cmp(&window[1]) == Some(Ordering::Greater));
 
             Ok(ret.into())
         }
     }
-
 }
 
 pub fn ge(args: &[Expr]) -> EvalResult {
-    match &args[0]
-        .as_inner_atom()
-        .partial_cmp(&args[1].as_inner_atom())
-    {
-        Some(Ordering::Equal) | Some(Ordering::Greater) => Ok(true.into()),
-        Some(Ordering::Less) => Ok(false.into()),
-        None => Err("cannot compare these two types".to_string()),
+    match args.len() {
+        0 => Err("wrong number of args".to_string()),
+        1 => Ok(true.into()),
+        _ => {
+            let atom_vec: Vec<Atom> = args.iter().map(|expr| expr.as_inner_atom()).collect();
+            let ret = atom_vec
+                .windows(2)
+                .all(|window| match window[0].partial_cmp(&window[1]) {
+                    Some(Ordering::Greater) | Some(Ordering::Equal) => true,
+                    _ => false,
+                });
+
+            Ok(ret.into())
+        }
     }
 }
 
 pub fn lt(args: &[Expr]) -> EvalResult {
-    match &args[0]
-        .as_inner_atom()
-        .partial_cmp(&args[1].as_inner_atom())
-    {
-        Some(Ordering::Equal) | Some(Ordering::Greater) => Ok(true.into()),
-        Some(Ordering::Less) => Ok(false.into()),
-        None => Err("cannot compare these two types".to_string()),
+    match args.len() {
+        0 => Err("wrong number of args".to_string()),
+        1 => Ok(true.into()),
+        _ => {
+            let atom_vec: Vec<Atom> = args.iter().map(|expr| expr.as_inner_atom()).collect();
+            let ret = atom_vec
+                .windows(2)
+                .all(|window| window[0].partial_cmp(&window[1]) == Some(Ordering::Less));
+
+            Ok(ret.into())
+        }
     }
 }
 
 pub fn le(args: &[Expr]) -> EvalResult {
-    unimplemented!();
+    match args.len() {
+        0 => Err("wrong number of args".to_string()),
+        1 => Ok(true.into()),
+        _ => {
+            let atom_vec: Vec<Atom> = args.iter().map(|expr| expr.as_inner_atom()).collect();
+            let ret = atom_vec
+                .windows(2)
+                .all(|window| match window[0].partial_cmp(&window[1]) {
+                    Some(Ordering::Less) | Some(Ordering::Equal) => true,
+                    _ => false,
+                });
+
+            Ok(ret.into())
+        }
+    }
 }
 
 pub fn eq(args: &[Expr]) -> EvalResult {
-    unimplemented!();
+    match args.len() {
+        0 => Err("wrong number of args".to_string()),
+        1 => Ok(true.into()),
+        _ => {
+            let atom_vec: Vec<Atom> = args.iter().map(|expr| expr.as_inner_atom()).collect();
+            let ret = atom_vec
+                .windows(2)
+                .all(|window| window[0].partial_cmp(&window[1]) == Some(Ordering::Equal));
+
+            Ok(ret.into())
+        }
+    }
 }
 
 impl Add for Atom {
@@ -691,5 +715,149 @@ mod ops_tests {
 
         assert_eq!(result, Atom::Ratio { num: -1, den: 4 });
     }
+}
 
+#[cfg(test)]
+mod cmp_tests {
+    use super::*;
+
+    #[test]
+    fn ge_increasing_false() {
+        let atoms: &[Expr] = &[1.into(), 2.into(), 3.into()];
+
+        let result = ge(atoms);
+
+        assert!(result.is_ok());
+        assert_eq!(Expr::Atom(Atom::Boolean(false)), result.unwrap());
+    }
+
+    #[test]
+    fn ge_decreasing_true() {
+        let atoms: &[Expr] = &[3.into(), 2.into(), 1.into()];
+
+        let result = ge(atoms);
+
+        assert!(result.is_ok());
+        assert_eq!(Expr::Atom(Atom::Boolean(true)), result.unwrap());
+    }
+
+    #[test]
+    fn ge_decreasing_and_equal_true() {
+        let atoms: &[Expr] = &[3.into(), 3.into(), 2.into(), 1.into()];
+
+        let result = ge(atoms);
+
+        assert!(result.is_ok());
+        assert_eq!(Expr::Atom(Atom::Boolean(true)), result.unwrap());
+    }
+
+    #[test]
+    fn gt_increasing_false() {
+        let atoms: &[Expr] = &[1.into(), 2.into(), 3.into()];
+
+        let result = gt(atoms);
+
+        assert!(result.is_ok());
+        assert_eq!(Expr::Atom(Atom::Boolean(false)), result.unwrap());
+    }
+
+    #[test]
+    fn gt_decreasing_true() {
+        let atoms: &[Expr] = &[3.into(), 2.into(), 1.into()];
+
+        let result = gt(atoms);
+
+        assert!(result.is_ok());
+        assert_eq!(Expr::Atom(Atom::Boolean(true)), result.unwrap());
+    }
+
+    #[test]
+    fn gt_decreasing_and_equal_false() {
+        let atoms: &[Expr] = &[3.into(), 3.into(), 2.into(), 1.into()];
+
+        let result = gt(atoms);
+
+        assert!(result.is_ok());
+        assert_eq!(Expr::Atom(Atom::Boolean(false)), result.unwrap());
+    }
+
+    #[test]
+    fn le_increasing_true() {
+        let atoms: &[Expr] = &[1.into(), 2.into(), 3.into()];
+
+        let result = le(atoms);
+
+        assert!(result.is_ok());
+        assert_eq!(Expr::Atom(Atom::Boolean(true)), result.unwrap());
+    }
+
+    #[test]
+    fn le_decreasing_false() {
+        let atoms: &[Expr] = &[3.into(), 2.into(), 1.into()];
+
+        let result = le(atoms);
+
+        assert!(result.is_ok());
+        assert_eq!(Expr::Atom(Atom::Boolean(false)), result.unwrap());
+    }
+
+    #[test]
+    fn le_increasing_and_equal_true() {
+        let atoms: &[Expr] = &[1.into(), 1.into(), 2.into(), 3.into()];
+
+        let result = le(atoms);
+
+        assert!(result.is_ok());
+        assert_eq!(Expr::Atom(Atom::Boolean(true)), result.unwrap());
+    }
+
+    #[test]
+    fn lt_increasing_true() {
+        let atoms: &[Expr] = &[1.into(), 2.into(), 3.into()];
+
+        let result = lt(atoms);
+
+        assert!(result.is_ok());
+        assert_eq!(Expr::Atom(Atom::Boolean(true)), result.unwrap());
+    }
+
+    #[test]
+    fn lt_decreasing_false() {
+        let atoms: &[Expr] = &[3.into(), 2.into(), 1.into()];
+
+        let result = lt(atoms);
+
+        assert!(result.is_ok());
+        assert_eq!(Expr::Atom(Atom::Boolean(false)), result.unwrap());
+    }
+
+    #[test]
+    fn lt_increasing_and_equal_false() {
+        let atoms: &[Expr] = &[1.into(), 1.into(), 2.into(), 3.into()];
+
+        let result = lt(atoms);
+
+        assert!(result.is_ok());
+        assert_eq!(Expr::Atom(Atom::Boolean(false)), result.unwrap());
+    }
+
+    #[test]
+    fn eq_for_all_true() {
+        let atoms: &[Expr] = &[1.into(), 1.into(), 1.into(), 1.into()];
+
+        let result = eq(atoms);
+
+        assert!(result.is_ok());
+        assert_eq!(Expr::Atom(Atom::Boolean(true)), result.unwrap());
+    }
+
+    #[test]
+    fn eq_for_some_false() {
+        let atoms: &[Expr] = &[1.into(), 1.into(), 2.into(), 3.into()];
+
+        let result = eq(atoms);
+
+        assert!(result.is_ok());
+        assert_eq!(Expr::Atom(Atom::Boolean(false)), result.unwrap());
+    }
 }
