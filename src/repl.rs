@@ -52,7 +52,7 @@ impl Repl {
                                 } => match variant {
                                     error::ErrorVariant::ParsingError {
                                         positives,
-                                        negatives,
+                                        ..
                                     } => match location {
                                         error::InputLocation::Pos(index) => eprintln!(
                                             "parsing error encountered at position {}, expected one of {:?}",
@@ -63,9 +63,7 @@ impl Repl {
                                             line, col, positives
                                         ),
                                     },
-                                    error::ErrorVariant::CustomError { message } => {
-                                        unimplemented!()
-                                    }
+                                    _ => unimplemented!(),
                                 },
                                 _ => eprintln!("err: {:?}", err),
                             },
@@ -81,10 +79,6 @@ impl Repl {
                 }
             }
         }
-    }
-
-    pub fn close(&self) {
-        unimplemented!();
     }
 }
 

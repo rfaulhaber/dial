@@ -1,9 +1,6 @@
 // use super::core::{get_builtin, BuiltinFunc};
-use super::parser::{Atom, DialParser, Expr, Lambda, Rule};
+use super::parser::{Atom, Expr, Lambda};
 use crate::environment::env::Env;
-use log::Level;
-use std::cell::RefCell;
-use std::error;
 
 // TODO remove all direct vector references, safely use .get() instead
 // TODO refactor using this: https://doc.rust-lang.org/book/ch18-03-pattern-syntax.html#destructuring-nested-structs-and-enums
@@ -227,10 +224,6 @@ impl Interpreter {
             None => Env::default(),
         }
     }
-
-    fn eval_let(&self, expr: Expr) -> EvalResult {
-        unimplemented!();
-    }
 }
 
 fn is_list_special(expr: &Expr) -> bool {
@@ -323,6 +316,7 @@ impl Iterator for BindingIterator {
 #[cfg(test)]
 mod interpreter_test {
     use super::*;
+    use crate::parser::{DialParser, Rule};
     use pest::Parser;
 
     #[test]

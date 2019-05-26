@@ -15,6 +15,6 @@ use repl::Repl;
 
 fn main() {
     env_logger::init();
-    let mut repl = Repl::new();
+    let repl = Repl::new();
     repl.start();
 }

@@ -1,10 +1,8 @@
-use crate::environment::env::Env;
 use pest::error::LineColLocation;
 use pest::iterators::{Pair, Pairs};
 use pest::Parser;
 use std::cmp;
 use std::fmt;
-use std::rc::Rc;
 
 // TODO refactor using this: https://doc.rust-lang.org/book/ch18-03-pattern-syntax.html#destructuring-nested-structs-and-enums
 
@@ -50,8 +48,8 @@ impl cmp::PartialEq for Atom {
 					den: r_den,
 				},
 			) => l_num == r_num && l_den == r_den,
-			(Atom::Macro(left), Atom::Macro(right)) => false, // TODO temporary, change this
-			(Atom::Lambda(left), Atom::Lambda(right)) => false, // TODO temporary, change this
+			(Atom::Macro(_), Atom::Macro(_)) => false, // TODO temporary, change this
+			(Atom::Lambda(_), Atom::Lambda(_)) => false, // TODO temporary, change this
 			(Atom::Nil, Atom::Nil) => true,
 			_ => false,
 		}
@@ -68,8 +66,8 @@ impl fmt::Debug for Atom {
 			Atom::Symbol(s) => write!(f, "{:?}", s),
 			Atom::Identifier(s) => write!(f, "{:?}", s),
 			Atom::Ratio { num, den } => write!(f, "{:?}/{:?}", num, den),
-			Atom::Macro(func) => write!(f, "#{{core}}"),
-			Atom::Lambda(lambda) => write!(f, "#{{lambda}}"),
+			Atom::Macro(_) => write!(f, "#{{core}}"),
+			Atom::Lambda(_) => write!(f, "#{{lambda}}"),
 			Atom::Nil => write!(f, "nil"),
 		}
 	}
@@ -281,49 +279,6 @@ impl Expr {
 		}
 	}
 
-	pub fn from_atom(s: &str) -> ParseResult {
-		let ast = DialParser::parse(Rule::atom, s);
-
-		match ast {
-			Ok(mut result) => Ok(parse_atom(result.next().unwrap())),
-			Err(err) => Err(format!("could not parse atom: {}", err)),
-		}
-	}
-
-	pub fn is_list(&self) -> bool {
-		match self {
-			Expr::List(_) => true,
-			_ => false,
-		}
-	}
-
-	pub fn is_atom(&self) -> bool {
-		match self {
-			Expr::Atom(_) => true,
-			_ => false,
-		}
-	}
-
-	pub fn is_vector(&self) -> bool {
-		match self {
-			Expr::Vector(_) => true,
-			_ => false,
-		}
-	}
-
-	pub fn into_iter(&self) -> ExprIter {
-		match self {
-			Expr::List(l) => ExprIter {
-				items: l.clone(),
-				current: 0,
-			},
-			_ => ExprIter {
-				items: vec![self.clone()],
-				current: 0,
-			},
-		}
-	}
-
 	pub fn as_atom(&self) -> Option<Atom> {
 		match self {
 			Expr::Atom(a) => Some(a.clone()),
@@ -380,29 +335,6 @@ impl Lambda {
 	}
 }
 
-// TODO implement custom iterator where, if atom, returns self
-// otherwise, returns every expr in list
-pub struct ExprIter {
-	items: Vec<Expr>,
-	current: usize,
-}
-
-impl Iterator for ExprIter {
-	type Item = Expr;
-
-	fn next(&mut self) -> Option<Self::Item> {
-		let current = self.items.get(self.current);
-
-		match current {
-			Some(item) => {
-				self.current += 1;
-				Some(item.clone())
-			}
-			None => None,
-		}
-	}
-}
-
 #[cfg(test)]
 mod parser_test {
 	use super::*;
@@ -421,8 +353,6 @@ mod parser_test {
 		let pairs = DialParser::parse(Rule::list, "(* 2 (+ 3 4 5))").unwrap();
 		let result = Expr::from(pairs);
 
-		assert!(result.is_list());
-
 		let expected = Expr::List(vec![
 			Atom::Symbol(String::from("*")).into(),
 			Atom::Integer(2).into(),
@@ -435,14 +365,6 @@ mod parser_test {
 		]);
 
 		assert_eq!(result, expected);
-	}
-
-	#[test]
-	fn from_atom_returns_expr() {
-		let parse_result = Expr::from_atom("2");
-		assert!(parse_result.is_ok());
-
-		assert_eq!(parse_result.unwrap(), Atom::Integer(2).into());
 	}
 
 	#[test]
@@ -466,30 +388,5 @@ mod parser_test {
 			}
 			_ => unreachable!(),
 		}
-	}
-}
-
-#[cfg(test)]
-mod expr_iter_test {
-	use super::*;
-
-	#[test]
-	fn iter_returns_correctly() {
-		let parse_result = Expr::from_list("(* 2 (+ 3 4 5))");
-		let mut iter = parse_result.unwrap().into_iter();
-
-		assert_eq!(iter.next().unwrap(), Atom::Symbol(String::from("*")).into());
-		assert_eq!(iter.next().unwrap(), Atom::Integer(2).into());
-		assert_eq!(
-			iter.next().unwrap(),
-			Expr::List(vec![
-				Atom::Symbol(String::from("+")).into(),
-				Atom::Integer(3).into(),
-				Atom::Integer(4).into(),
-				Atom::Integer(5).into(),
-			])
-		);
-
-		assert_eq!(iter.next(), None);
 	}
 }

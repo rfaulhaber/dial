@@ -349,38 +349,6 @@ fn gcd(a: i64, b: i64) -> i64 {
     gcd(b, a % b)
 }
 
-struct PairIter<T> {
-    elements: Vec<T>,
-}
-
-impl<T> PairIter<T> {
-    fn new(elements: Vec<T>) -> PairIter<T> {
-        PairIter { elements }
-    }
-}
-
-impl<T> Iterator for PairIter<T>
-where
-    T: std::clone::Clone,
-{
-    type Item = (T, Option<T>);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let mut first_two = self.elements.iter().take(2);
-
-        let result = match (first_two.next(), first_two.next()) {
-            (Some(first), Some(second)) => Some((first.clone(), Some(second.clone()))),
-            (Some(first), None) => Some((first.clone(), None)),
-            _ => None,
-        };
-
-        // TODO fix index error
-        self.elements = self.elements[2..].to_vec();
-
-        result
-    }
-}
-
 #[cfg(test)]
 mod math_fn_tests {
     use super::*;
