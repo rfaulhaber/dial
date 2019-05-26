@@ -351,9 +351,6 @@ fn parse_atom(pair: Pair<Rule>) -> Expr {
 	// atoms should only be one thing, so this is okay
 	let item = pair.into_inner().next().unwrap();
 
-	info!("item as rule: {:?}", item.as_rule());
-	info!("item as span: {:?}", item.as_span());
-
 	match item.as_rule() {
 		Rule::nil => Atom::Nil.into(),
 		Rule::int => Atom::Integer(item.as_str().parse::<i64>().unwrap()).into(),
