@@ -1,8 +1,8 @@
 use super::interpreter::{EvalResult, Interpreter};
 use super::parser::{DialParser, Expr, Rule};
 use log::Level;
-use pest::Parser;
 use pest::error;
+use pest::Parser;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 use std::time::Instant;
@@ -47,9 +47,28 @@ impl Repl {
                             }
                             // TODO make smarter
                             Err(err) => match err {
-                                pest::error::Error{..}=> eprintln!("parsing error encountered: {:?}", err),
+                                error::Error {
+                                    variant, location, ..
+                                } => match variant {
+                                    error::ErrorVariant::ParsingError {
+                                        positives,
+                                        negatives,
+                                    } => match location {
+                                        error::InputLocation::Pos(index) => eprintln!(
+                                            "parsing error encountered at position {}, expected one of {:?}",
+                                            index, positives
+                                        ),
+                                        error::InputLocation::Span((line, col)) => eprintln!(
+                                            "parsing error encountered at ({},{}), expected one of {:?}",
+                                            line, col, positives
+                                        ),
+                                    },
+                                    error::ErrorVariant::CustomError { message } => {
+                                        unimplemented!()
+                                    }
+                                },
                                 _ => eprintln!("err: {:?}", err),
-                            }
+                            },
                         }
                     }
                 }

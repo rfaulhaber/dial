@@ -30,7 +30,7 @@ impl Interpreter {
 
                     match lookup {
                         Some(result) => Ok(result),
-                        None => Err(format!("could not find symbol {}", symbol)),
+                        None => Err(format!("cannot resolve symbol: {}", symbol)),
                     }
                 }
                 Atom::Identifier(id) => {
