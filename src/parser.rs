@@ -1,6 +1,4 @@
-use pest::error::LineColLocation;
 use pest::iterators::{Pair, Pairs};
-use pest::Parser;
 use std::cmp;
 use std::fmt;
 
@@ -175,17 +173,11 @@ impl cmp::PartialEq for Expr {
 				}
 			}
 			(Expr::Vector(left), Expr::Vector(right)) => {
-				if left.len() == right.len() {
-					for (left_item, right_item) in left.iter().zip(right.iter()) {
-						if left_item != right_item {
-							return false;
-						}
-					}
-
-					true
-				} else {
-					false
-				}
+				left.len() == right.len()
+					&& left
+						.iter()
+						.zip(right.iter())
+						.all(|(left_item, right_item)| left_item != right_item)
 			}
 			_ => false,
 		}
@@ -260,25 +252,6 @@ impl<'a> From<Pairs<'a, Rule>> for Expr {
 }
 
 impl Expr {
-	pub fn from_list(s: &str) -> ParseResult {
-		let ast = DialParser::parse(Rule::list, s);
-
-		match ast {
-			Ok(mut result) => Ok(parse_pair(result.next().unwrap())),
-			Err(err) => match err.line_col {
-				LineColLocation::Pos((line, col)) => {
-					let err_str = format!("error ({}, {}): invalid symbol", line, col);
-
-					Err(err_str)
-				}
-				LineColLocation::Span((line, col), (end_line, end_col)) => Err(format!(
-					"error ({}, {}), ({}, {}): invalid form",
-					line, col, end_line, end_col
-				)),
-			},
-		}
-	}
-
 	pub fn as_atom(&self) -> Option<Atom> {
 		match self {
 			Expr::Atom(a) => Some(a.clone()),
@@ -332,61 +305,5 @@ pub struct Lambda {
 impl Lambda {
 	pub fn new(params: Vec<String>, body: Box<Expr>) -> Lambda {
 		Lambda { params, body }
-	}
-}
-
-#[cfg(test)]
-mod parser_test {
-	use super::*;
-
-	#[test]
-	fn display_expr() {
-		let expected = "(* 2 (+ 3 4 5))";
-		let expr = Expr::from_list(expected).unwrap();
-		let result = format!("{}", expr);
-
-		assert_eq!(expected, result);
-	}
-
-	#[test]
-	fn from_list_returns_expr() {
-		let pairs = DialParser::parse(Rule::list, "(* 2 (+ 3 4 5))").unwrap();
-		let result = Expr::from(pairs);
-
-		let expected = Expr::List(vec![
-			Atom::Symbol(String::from("*")).into(),
-			Atom::Integer(2).into(),
-			Expr::List(vec![
-				Atom::Symbol(String::from("+")).into(),
-				Atom::Integer(3).into(),
-				Atom::Integer(4).into(),
-				Atom::Integer(5).into(),
-			]),
-		]);
-
-		assert_eq!(result, expected);
-	}
-
-	#[test]
-	fn from_paris_returns_expr() {
-		let parse_result = DialParser::parse(Rule::list, "(* 2 (+ 3 4 5))").unwrap();
-		let expr = Expr::from(parse_result);
-
-		match expr {
-			Expr::List(l) => {
-				assert_eq!(l[0], Atom::Symbol(String::from("*")).into());
-				assert_eq!(l[1], Atom::Integer(2).into());
-				assert_eq!(
-					l[2],
-					Expr::List(vec![
-						Atom::Symbol(String::from("+")).into(),
-						Atom::Integer(3).into(),
-						Atom::Integer(4).into(),
-						Atom::Integer(5).into(),
-					])
-				);
-			}
-			_ => unreachable!(),
-		}
 	}
 }
