@@ -24,6 +24,7 @@ impl Interpreter {
     pub fn eval(&mut self, expr: Expr) -> EvalResult {
         let mut inner_expr = expr;
         let result = loop {
+            info!("evaluating inner: {}", inner_expr);
             match inner_expr {
                 Expr::Atom(atom) => match atom {
                     Atom::Symbol(symbol) => {
@@ -199,6 +200,7 @@ impl Interpreter {
                                         .map(|arg_expr| self.eval(arg_expr.clone()))
                                         .collect();
 
+                                    info!("opening scope");
                                     self.push_scope();
 
                                     for (symbol, arg_eval) in params.iter().zip(args_eval?.iter()) {
@@ -221,6 +223,7 @@ impl Interpreter {
         };
 
         if self.close_env {
+            info!("closing scope");
             self.close_env = false;
             self.pop_scope();
         }
