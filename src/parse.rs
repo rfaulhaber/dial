@@ -1,7 +1,7 @@
 use super::ast::*;
 use nom::{
 	branch::alt,
-	bytes::complete::{is_not, tag, take_until},
+	bytes::complete::{is_not, tag, take_till, take_until},
 	character::complete::{char, digit1},
 	combinator::{map, map_res},
 	sequence::{delimited, preceded, tuple},
@@ -26,12 +26,7 @@ fn sexpr<'s>(input: &str) -> IResult<&str, S<'s>> {
 }
 
 fn atom(input: &str) -> IResult<&str, Atom<'_>> {
-	alt((
-		float_atom,
-		int_atom,
-		str_atom,
-		keyword_atom,
-	))(input)
+	alt((float_atom, int_atom, str_atom, keyword_atom, sym_atom))(input)
 }
 
 fn int_atom(input: &str) -> IResult<&str, Atom<'_>> {
@@ -47,7 +42,11 @@ fn str_atom(input: &str) -> IResult<&str, Atom<'_>> {
 }
 
 fn keyword_atom(input: &str) -> IResult<&str, Atom<'_>> {
-	map(keyword, |s| Atom::Sym(s))(input)
+	map(keyword, |s| Atom::Keyword(s))(input)
+}
+
+fn sym_atom(input: &str) -> IResult<&str, Atom<'_>> {
+	map(sym, |s| Atom::Sym(s))(input)
 }
 
 fn int(input: &str) -> IResult<&str, i64> {
@@ -74,11 +73,11 @@ fn str(input: &str) -> IResult<&str, &str> {
 }
 
 fn keyword(input: &str) -> IResult<&str, &str> {
-	preceded(tag(":"), take_until(" "))(input)
+	preceded(tag(":"), sym)(input)
 }
 
 fn sym(input: &str) -> IResult<&str, &str> {
-	todo!("implement me!");
+	take_till(|c| c == ' ')(input)
 }
 
 #[cfg(test)]
@@ -87,7 +86,7 @@ mod tests {
 
 	#[test]
 	fn atom_test() {
-		let inputs = vec!["12", "-34.5", r#""foo bar""#, ":foo"];
+		let inputs = vec!["12", "-34.5", r#""foo bar""#, ":foo", "foo"];
 		let res: Vec<Atom<'_>> = inputs.iter().map(|s| atom(s).unwrap().1).collect();
 
 		assert_eq!(
@@ -96,7 +95,8 @@ mod tests {
 				Atom::Int(12),
 				Atom::Float(-34.5),
 				Atom::Str("foo bar"),
-				Atom::Keyword("foo")
+				Atom::Keyword("foo"),
+				Atom::Sym("foo")
 			]
 		);
 	}
