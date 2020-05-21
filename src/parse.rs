@@ -1,14 +1,24 @@
 use super::ast::*;
+use nom::character::complete::anychar;
+use nom::character::is_digit;
+use nom::combinator::all_consuming;
+use nom::combinator::verify;
 use nom::{
 	branch::alt,
-	bytes::complete::{is_not, tag, take_till, take_until},
-	character::complete::{char, digit1},
-	combinator::{map, map_res},
+	bytes::complete::{is_not, tag, take_till, take_until, take_while, take_while_m_n},
+	character::complete::{char, digit1, multispace0, multispace1},
+	combinator::{cut, map, map_res},
+	error::context,
+	sequence::pair,
 	sequence::{delimited, preceded, tuple},
 	IResult,
 };
+use nom::{combinator::recognize, multi::many1};
 
 pub type ParseResult<T> = Result<T, ParseError>;
+
+// TODO see this for tips?
+// https://www.leonrische.me/pages/parsing_scheme_with_nom.html#org607ec99
 
 #[derive(Debug)]
 pub struct ParseError(String);
@@ -21,12 +31,29 @@ pub fn parse_atom<'a>(input: &str) -> ParseResult<Atom<'a>> {
 	unimplemented!();
 }
 
-fn sexpr<'s>(input: &str) -> IResult<&str, S<'s>> {
-	unimplemented!();
+fn sexpr(input: &str) -> IResult<&str, S<'_>> {
+	preceded(
+		multispace0,
+		alt((
+			delimited(
+				char('('),
+				map(many1(alt((atom_sexpr, sexpr))), |v| S::List(v)),
+				cut(preceded(multispace0, char(')'))),
+			),
+			atom_sexpr,
+		)),
+	)(input)
+}
+
+fn atom_sexpr(input: &str) -> IResult<&str, S<'_>> {
+	map(atom, |a| S::Atom(Box::new(a)))(input)
 }
 
 fn atom(input: &str) -> IResult<&str, Atom<'_>> {
-	alt((float_atom, int_atom, str_atom, keyword_atom, sym_atom))(input)
+	preceded(
+		multispace0,
+		alt((float_atom, int_atom, str_atom, keyword_atom, sym_atom)),
+	)(input)
 }
 
 fn int_atom(input: &str) -> IResult<&str, Atom<'_>> {
@@ -77,12 +104,46 @@ fn keyword(input: &str) -> IResult<&str, &str> {
 }
 
 fn sym(input: &str) -> IResult<&str, &str> {
-	take_till(|c| c == ' ')(input)
+	recognize(all_consuming(pair(
+		verify(anychar, valid_first_sym_char),
+		take_while(valid_sym_char),
+	)))(input)
+}
+
+fn valid_first_sym_char(c: &char) -> bool {
+	!c.is_whitespace() && !c.is_numeric()
+}
+
+fn valid_sym_char(c: char) -> bool {
+	!c.is_whitespace() && (c.is_alphanumeric() || !matches!(c, '(' | ')'))
 }
 
 #[cfg(test)]
 mod tests {
 	use super::*;
+
+	#[test]
+	fn sexpr_atom_parses() {
+		let input = "123";
+		let result = sexpr(input).unwrap();
+
+		let expected = S::Atom(Box::new(Atom::Int(123)));
+
+		assert_eq!(result.1, expected);
+	}
+
+	#[test]
+	fn sexpr_list_parses() {
+		let input = "   ( 123 456 )";
+		let result = dbg!(sexpr(input)).unwrap();
+
+		let expected = S::List(vec![
+			S::Atom(Box::new(Atom::Int(123))),
+			S::Atom(Box::new(Atom::Int(456))),
+		]);
+
+		assert_eq!(result.1, expected);
+	}
 
 	#[test]
 	fn atom_test() {

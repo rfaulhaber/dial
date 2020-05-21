@@ -1,9 +1,18 @@
 use std::fmt::Display;
 
-#[derive(Debug, PartialEq)]
+// macro_rules! sexpr {
+// 	(nil) => {
+// 		S::Atom(Box::new(Atom::Nil))
+// 	};
+// 	($l:literal) => {
+// 		S::Atom(Box::new($l.into()))
+// 	}
+// }
+
+#[derive(Debug, Clone, PartialEq)]
 pub enum S<'s> {
 	Atom(Box<Atom<'s>>),
-	List(Vec<Atom<'s>>),
+	List(Vec<S<'s>>),
 }
 
 impl <'s> Display for S<'s> {
@@ -23,7 +32,13 @@ impl <'s> Display for S<'s> {
 	}
 }
 
-#[derive(Debug, PartialEq)]
+impl<'s> From<Atom<'s>> for S<'s> {
+	fn from(a: Atom<'s>) -> S<'s> {
+		S::Atom(Box::new(a))
+	}
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub enum Atom<'a> {
 	Nil,
 	Bool(bool),
