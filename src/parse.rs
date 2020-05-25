@@ -13,12 +13,9 @@ use nom::{
 	sequence::{delimited, preceded, tuple},
 	IResult,
 };
-use nom::{combinator::recognize, multi::many1};
+use nom::{combinator::recognize, multi::{many1, many0}};
 
 pub type ParseResult<T> = Result<T, ParseError>;
-
-// TODO see this for tips?
-// https://www.leonrische.me/pages/parsing_scheme_with_nom.html#org607ec99
 
 #[derive(Debug)]
 pub struct ParseError(String);
@@ -32,28 +29,23 @@ pub fn parse_atom<'a>(input: &str) -> ParseResult<Atom<'a>> {
 }
 
 fn sexpr(input: &str) -> IResult<&str, S<'_>> {
-	preceded(
-		multispace0,
-		alt((
-			delimited(
-				char('('),
-				map(many1(alt((atom_sexpr, sexpr))), |v| S::List(v)),
-				cut(preceded(multispace0, char(')'))),
-			),
-			atom_sexpr,
-		)),
+	preceded(multispace0, alt((atom_sexpr, sexpr_inner)))(input)
+}
+
+fn sexpr_inner(input: &str) -> IResult<&str, S<'_>> {
+	delimited(
+		char('('),
+		preceded(multispace0, map(many1(alt((atom_sexpr, sexpr_inner))), |v| S::List(v))),
+		cut(preceded(multispace0, char(')'))),
 	)(input)
 }
 
 fn atom_sexpr(input: &str) -> IResult<&str, S<'_>> {
-	map(atom, |a| S::Atom(Box::new(a)))(input)
+	context("atom", map(preceded(multispace0, atom), |a| S::Atom(Box::new(a))))(input)
 }
 
 fn atom(input: &str) -> IResult<&str, Atom<'_>> {
-	preceded(
-		multispace0,
-		alt((float_atom, int_atom, str_atom, keyword_atom, sym_atom)),
-	)(input)
+	alt((float_atom, int_atom, str_atom, keyword_atom, sym_atom))(input)
 }
 
 fn int_atom(input: &str) -> IResult<&str, Atom<'_>> {
@@ -134,15 +126,18 @@ mod tests {
 
 	#[test]
 	fn sexpr_list_parses() {
-		let input = "   ( 123 456 )";
-		let result = dbg!(sexpr(input)).unwrap();
+		let input = " (  123 456 )";
+		let result = sexpr(input);
 
-		let expected = S::List(vec![
-			S::Atom(Box::new(Atom::Int(123))),
-			S::Atom(Box::new(Atom::Int(456))),
-		]);
+		let expected = Ok((
+			"",
+			S::List(vec![
+				S::Atom(Box::new(Atom::Int(123))),
+				S::Atom(Box::new(Atom::Int(456))),
+			]),
+		));
 
-		assert_eq!(result.1, expected);
+		assert_eq!(result, expected);
 	}
 
 	#[test]
@@ -159,6 +154,17 @@ mod tests {
 				Atom::Keyword("foo"),
 				Atom::Sym("foo")
 			]
+		);
+	}
+
+	#[test]
+	fn odd_symbols_parse() {
+		let inputs = vec!["+", "foo/bar", "baz-quux"];
+		let res: Vec<Atom<'_>> = inputs.iter().map(|s| atom(s).unwrap().1).collect();
+
+		assert_eq!(
+			res,
+			vec![Atom::Sym("+"), Atom::Sym("foo/bar"), Atom::Sym("baz-quux")]
 		);
 	}
 
