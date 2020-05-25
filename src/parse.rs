@@ -8,12 +8,15 @@ use nom::{
 	bytes::complete::{is_not, tag, take_till, take_until, take_while, take_while_m_n},
 	character::complete::{char, digit1, multispace0, multispace1},
 	combinator::{cut, map, map_res},
-	error::context,
+	error::{context, VerboseError},
 	sequence::pair,
 	sequence::{delimited, preceded, tuple},
 	IResult,
 };
-use nom::{combinator::recognize, multi::{many1, many0}};
+use nom::{
+	combinator::recognize,
+	multi::{many0, many1},
+};
 
 pub type ParseResult<T> = Result<T, ParseError>;
 
@@ -35,13 +38,28 @@ fn sexpr(input: &str) -> IResult<&str, S<'_>> {
 fn sexpr_inner(input: &str) -> IResult<&str, S<'_>> {
 	delimited(
 		char('('),
-		preceded(multispace0, map(many1(alt((atom_sexpr, sexpr_inner))), |v| S::List(v))),
-		cut(preceded(multispace0, char(')'))),
+		list_content,
+		preceded(multispace0, cut(char(')'))),
 	)(input)
 }
 
+fn list_content(input: &str) -> IResult<&str, S<'_>> {
+	map(many0(sexpr), |v| S::List(v))(input)
+}
+
+fn s_exp<'a, F, T>(inner: F) -> impl Fn(&'a str) -> IResult<&'a str, T>
+where
+	F: Fn(&str) -> IResult<&str, T>,
+{
+	delimited(
+		char('('),
+		preceded(multispace0, inner),
+		context("closing paren", cut(preceded(multispace0, char(')')))),
+	)
+}
+
 fn atom_sexpr(input: &str) -> IResult<&str, S<'_>> {
-	context("atom", map(preceded(multispace0, atom), |a| S::Atom(Box::new(a))))(input)
+	map(atom, |a| S::Atom(Box::new(a)))(input)
 }
 
 fn atom(input: &str) -> IResult<&str, Atom<'_>> {
@@ -115,6 +133,22 @@ mod tests {
 	use super::*;
 
 	#[test]
+	fn sexpr_with_whitespace_parses() {
+		let input = "   ( 123   456   )";
+		let result = sexpr(input);
+
+		let expected = Ok((
+			"",
+			S::List(vec![
+				S::Atom(Box::new(Atom::Int(123))),
+				S::Atom(Box::new(Atom::Int(456))),
+			]),
+		));
+
+		assert_eq!(result, expected);
+	}
+
+	#[test]
 	fn sexpr_atom_parses() {
 		let input = "123";
 		let result = sexpr(input).unwrap();
@@ -126,7 +160,7 @@ mod tests {
 
 	#[test]
 	fn sexpr_list_parses() {
-		let input = " (  123 456 )";
+		let input = "(123 456)";
 		let result = sexpr(input);
 
 		let expected = Ok((
