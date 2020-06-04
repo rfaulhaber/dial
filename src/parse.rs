@@ -9,6 +9,7 @@ use nom::{
 	character::complete::{char, digit1, multispace0, multispace1},
 	combinator::{cut, map, map_res},
 	error::{context, VerboseError},
+	multi::separated_list,
 	sequence::pair,
 	sequence::{delimited, preceded, tuple},
 	IResult,
@@ -39,23 +40,18 @@ fn sexpr_inner(input: &str) -> IResult<&str, S<'_>> {
 	delimited(
 		char('('),
 		list_content,
-		preceded(multispace0, cut(char(')'))),
+		preceded(multispace0, char(')')),
 	)(input)
 }
 
 fn list_content(input: &str) -> IResult<&str, S<'_>> {
-	map(many0(sexpr), |v| S::List(v))(input)
-}
-
-fn s_exp<'a, F, T>(inner: F) -> impl Fn(&'a str) -> IResult<&'a str, T>
-where
-	F: Fn(&str) -> IResult<&str, T>,
-{
-	delimited(
-		char('('),
-		preceded(multispace0, inner),
-		context("closing paren", cut(preceded(multispace0, char(')')))),
-	)
+	map(
+		preceded(
+			multispace0,
+			separated_list(multispace1, alt((atom_sexpr, sexpr_inner))),
+		),
+		|v| S::List(v),
+	)(input)
 }
 
 fn atom_sexpr(input: &str) -> IResult<&str, S<'_>> {
@@ -134,7 +130,7 @@ mod tests {
 
 	#[test]
 	fn sexpr_with_whitespace_parses() {
-		let input = "   ( 123   456   )";
+		let input = "   ( 123   456 )";
 		let result = sexpr(input);
 
 		let expected = Ok((
@@ -145,7 +141,7 @@ mod tests {
 			]),
 		));
 
-		assert_eq!(result, expected);
+		assert_eq!(result, expected, "could not parse {}", input);
 	}
 
 	#[test]
@@ -171,7 +167,17 @@ mod tests {
 			]),
 		));
 
-		assert_eq!(result, expected);
+		assert_eq!(result, expected, "could not parse {}", input);
+	}
+
+	#[test]
+	fn sexpr_single_list_parses() {
+		let input = "( 123 )";
+		let result = sexpr(input);
+
+		let expected = Ok(("", S::List(vec![S::Atom(Box::new(Atom::Int(123)))])));
+
+		assert_eq!(result, expected, "could not parse {}", input);
 	}
 
 	#[test]
