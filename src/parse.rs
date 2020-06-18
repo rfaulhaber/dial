@@ -40,7 +40,7 @@ fn sexpr_inner(input: &str) -> IResult<&str, S<'_>> {
 	delimited(
 		char('('),
 		list_content,
-		preceded(multispace0, char(')')),
+		preceded(multispace0,  cut(char(')'))),
 	)(input)
 }
 
@@ -110,23 +110,35 @@ fn keyword(input: &str) -> IResult<&str, &str> {
 }
 
 fn sym(input: &str) -> IResult<&str, &str> {
-	recognize(all_consuming(pair(
+	recognize(pair(
 		verify(anychar, valid_first_sym_char),
 		take_while(valid_sym_char),
-	)))(input)
+	))(input)
 }
 
 fn valid_first_sym_char(c: &char) -> bool {
-	!c.is_whitespace() && !c.is_numeric()
+	!c.is_whitespace() && !c.is_numeric() && !is_never_symbol(c)
 }
 
 fn valid_sym_char(c: char) -> bool {
-	!c.is_whitespace() && (c.is_alphanumeric() || !matches!(c, '(' | ')'))
+	!c.is_whitespace() && (c.is_alphanumeric() || !is_never_symbol(&c))
+}
+
+fn is_never_symbol(c: &char) -> bool {
+	matches!(c, '(' | ')')
 }
 
 #[cfg(test)]
 mod tests {
 	use super::*;
+
+	#[test]
+	fn valid_sym_works() {
+		let input = "test)";
+		let res = sym(input);
+
+		assert_eq!(sym("test"), Ok(("", "test")));
+	}
 
 	#[test]
 	fn sexpr_with_whitespace_parses() {
@@ -195,6 +207,9 @@ mod tests {
 				Atom::Sym("foo")
 			]
 		);
+
+		let new_res = atom("(");
+		assert!(new_res.is_err(), format!("res: {:?}", new_res));
 	}
 
 	#[test]
