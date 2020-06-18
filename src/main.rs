@@ -1,3 +1,5 @@
+use dial::repl;
+
 fn main() {
-	println!("hello world");
+	repl();
 }

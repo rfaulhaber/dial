@@ -22,11 +22,15 @@ impl <'s> Display for S<'s> {
 			S::List(l) => {
 				write!(f, "(")?;
 
-				for v in l {
-					write!(f, "{}", v)?;
+				for (i, v) in l.iter().enumerate() {
+					if i == l.len() - 1 {
+						write!(f, "{}", v)?;
+					} else {
+						write!(f, "{} ", v)?;
+					}
 				}
 
-				Ok(write!(f, ")")?)
+				write!(f, ")")
 			}
 		}
 	}

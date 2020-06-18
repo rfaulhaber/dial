@@ -19,17 +19,22 @@ use nom::{
 	multi::{many0, many1},
 };
 
+use anyhow::Result;
+use thiserror::Error;
+
 pub type ParseResult<T> = Result<T, ParseError>;
 
-#[derive(Debug)]
-pub struct ParseError(String);
-
-pub fn parse_sexpr<'s>(input: &str) -> ParseResult<S<'s>> {
-	unimplemented!();
+#[derive(Error, Debug)]
+#[error("could not parse input {msg}")]
+pub struct ParseError {
+	msg: String,
 }
 
-pub fn parse_atom<'a>(input: &str) -> ParseResult<Atom<'a>> {
-	unimplemented!();
+pub fn parse_sexpr(input: &str) -> ParseResult<S<'_>> {
+	match sexpr(input) {
+		Ok((_, expr)) => Ok(expr),
+		Err(src) => Err(ParseError { msg: format!("{}", src)})
+	}
 }
 
 fn sexpr(input: &str) -> IResult<&str, S<'_>> {
