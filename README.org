@@ -1,0 +1,9 @@
+#+TITLE: README
+
+* Dial
+Dial Is A Lisp
+
+This is a work-in-progress and semi-faithful implementation of [[https://github.com/kanaka/mal/blob/master/process/guide.md][Make-A-Lisp]].
+
+I'd like to create reasonably useful Clojure-inspired Lisp implementation.
+Beyond that this project is somewhat directionless.
