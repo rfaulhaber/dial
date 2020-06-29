@@ -33,7 +33,9 @@ pub struct ParseError {
 pub fn parse_sexpr(input: &str) -> ParseResult<S<'_>> {
 	match sexpr(input) {
 		Ok((_, expr)) => Ok(expr),
-		Err(src) => Err(ParseError { msg: format!("{}", src)})
+		Err(src) => Err(ParseError {
+			msg: format!("{}", src),
+		}),
 	}
 }
 
@@ -45,7 +47,7 @@ fn sexpr_inner(input: &str) -> IResult<&str, S<'_>> {
 	delimited(
 		char('('),
 		list_content,
-		preceded(multispace0,  cut(char(')'))),
+		preceded(multispace0, cut(char(')'))),
 	)(input)
 }
 
@@ -60,7 +62,7 @@ fn list_content(input: &str) -> IResult<&str, S<'_>> {
 }
 
 fn atom_sexpr(input: &str) -> IResult<&str, S<'_>> {
-	map(atom, |a| S::Atom(Box::new(a)))(input)
+	map(atom, |a| S::Atom(a))(input)
 }
 
 fn atom(input: &str) -> IResult<&str, Atom<'_>> {
@@ -152,10 +154,7 @@ mod tests {
 
 		let expected = Ok((
 			"",
-			S::List(vec![
-				S::Atom(Box::new(Atom::Int(123))),
-				S::Atom(Box::new(Atom::Int(456))),
-			]),
+			S::List(vec![S::Atom(Atom::Int(123)), S::Atom(Atom::Int(456))]),
 		));
 
 		assert_eq!(result, expected, "could not parse {}", input);
@@ -166,7 +165,7 @@ mod tests {
 		let input = "123";
 		let result = sexpr(input).unwrap();
 
-		let expected = S::Atom(Box::new(Atom::Int(123)));
+		let expected = S::Atom(Atom::Int(123));
 
 		assert_eq!(result.1, expected);
 	}
@@ -178,10 +177,7 @@ mod tests {
 
 		let expected = Ok((
 			"",
-			S::List(vec![
-				S::Atom(Box::new(Atom::Int(123))),
-				S::Atom(Box::new(Atom::Int(456))),
-			]),
+			S::List(vec![S::Atom(Atom::Int(123)), S::Atom(Atom::Int(456))]),
 		));
 
 		assert_eq!(result, expected, "could not parse {}", input);
@@ -192,7 +188,7 @@ mod tests {
 		let input = "( 123 )";
 		let result = sexpr(input);
 
-		let expected = Ok(("", S::List(vec![S::Atom(Box::new(Atom::Int(123)))])));
+		let expected = Ok(("", S::List(vec![S::Atom(Atom::Int(123))])));
 
 		assert_eq!(result, expected, "could not parse {}", input);
 	}
