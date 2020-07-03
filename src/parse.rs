@@ -1,22 +1,13 @@
 use super::ast::*;
-use nom::character::complete::anychar;
-use nom::character::is_digit;
-use nom::combinator::all_consuming;
-use nom::combinator::verify;
 use nom::{
 	branch::alt,
-	bytes::complete::{is_not, tag, take_till, take_until, take_while, take_while_m_n},
-	character::complete::{char, digit1, multispace0, multispace1},
-	combinator::{cut, map, map_res},
-	error::{context, VerboseError},
+	bytes::complete::{tag, take_until, take_while},
+	character::complete::{anychar, char, digit1, multispace0, multispace1},
+	combinator::{cut, map, map_res, recognize, verify},
 	multi::separated_list,
 	sequence::pair,
 	sequence::{delimited, preceded, tuple},
 	IResult,
-};
-use nom::{
-	combinator::recognize,
-	multi::{many0, many1},
 };
 
 use anyhow::Result;
@@ -30,7 +21,7 @@ pub struct ParseError {
 	msg: String,
 }
 
-pub fn parse_sexpr(input: &str) -> ParseResult<S<'_>> {
+pub fn parse_sexpr<'a>(input: &'a str) -> ParseResult<DialVal<'a>> {
 	match sexpr(input) {
 		Ok((_, expr)) => Ok(expr),
 		Err(src) => Err(ParseError {
@@ -39,11 +30,11 @@ pub fn parse_sexpr(input: &str) -> ParseResult<S<'_>> {
 	}
 }
 
-fn sexpr(input: &str) -> IResult<&str, S<'_>> {
+fn sexpr<'a>(input: &'a str) -> IResult<&'a str, DialVal<'a>> {
 	preceded(multispace0, alt((atom_sexpr, sexpr_inner)))(input)
 }
 
-fn sexpr_inner(input: &str) -> IResult<&str, S<'_>> {
+fn sexpr_inner(input: &str) -> IResult<&str, DialVal<'_>> {
 	delimited(
 		char('('),
 		list_content,
@@ -51,18 +42,18 @@ fn sexpr_inner(input: &str) -> IResult<&str, S<'_>> {
 	)(input)
 }
 
-fn list_content(input: &str) -> IResult<&str, S<'_>> {
+fn list_content(input: &str) -> IResult<&str, DialVal<'_>> {
 	map(
 		preceded(
 			multispace0,
 			separated_list(multispace1, alt((atom_sexpr, sexpr_inner))),
 		),
-		|v| S::List(v),
+		|v| DialVal::List(v),
 	)(input)
 }
 
-fn atom_sexpr(input: &str) -> IResult<&str, S<'_>> {
-	map(atom, |a| S::Atom(a))(input)
+fn atom_sexpr(input: &str) -> IResult<&str, DialVal<'_>> {
+	map(atom, |a| DialVal::Atom(a))(input)
 }
 
 fn atom(input: &str) -> IResult<&str, Atom<'_>> {
@@ -154,7 +145,10 @@ mod tests {
 
 		let expected = Ok((
 			"",
-			S::List(vec![S::Atom(Atom::Int(123)), S::Atom(Atom::Int(456))]),
+			DialVal::List(vec![
+				DialVal::Atom(Atom::Int(123)),
+				DialVal::Atom(Atom::Int(456)),
+			]),
 		));
 
 		assert_eq!(result, expected, "could not parse {}", input);
@@ -165,7 +159,7 @@ mod tests {
 		let input = "123";
 		let result = sexpr(input).unwrap();
 
-		let expected = S::Atom(Atom::Int(123));
+		let expected = DialVal::Atom(Atom::Int(123));
 
 		assert_eq!(result.1, expected);
 	}
@@ -177,7 +171,10 @@ mod tests {
 
 		let expected = Ok((
 			"",
-			S::List(vec![S::Atom(Atom::Int(123)), S::Atom(Atom::Int(456))]),
+			DialVal::List(vec![
+				DialVal::Atom(Atom::Int(123)),
+				DialVal::Atom(Atom::Int(456)),
+			]),
 		));
 
 		assert_eq!(result, expected, "could not parse {}", input);
@@ -188,7 +185,7 @@ mod tests {
 		let input = "( 123 )";
 		let result = sexpr(input);
 
-		let expected = Ok(("", S::List(vec![S::Atom(Atom::Int(123))])));
+		let expected = Ok(("", DialVal::List(vec![DialVal::Atom(Atom::Int(123))])));
 
 		assert_eq!(result, expected, "could not parse {}", input);
 	}
