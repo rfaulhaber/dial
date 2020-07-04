@@ -21,8 +21,8 @@ pub struct ParseError {
 	msg: String,
 }
 
-pub fn parse_sexpr<'a>(input: &'a str) -> ParseResult<DialVal<'a>> {
-	match sexpr(input) {
+pub fn parse_sexpr(input: String) -> ParseResult<DialVal> {
+	match sexpr(&input) {
 		Ok((_, expr)) => Ok(expr),
 		Err(src) => Err(ParseError {
 			msg: format!("{}", src),
@@ -30,11 +30,11 @@ pub fn parse_sexpr<'a>(input: &'a str) -> ParseResult<DialVal<'a>> {
 	}
 }
 
-fn sexpr<'a>(input: &'a str) -> IResult<&'a str, DialVal<'a>> {
+fn sexpr(input: &str) -> IResult<&str, DialVal> {
 	preceded(multispace0, alt((atom_sexpr, sexpr_inner)))(input)
 }
 
-fn sexpr_inner(input: &str) -> IResult<&str, DialVal<'_>> {
+fn sexpr_inner(input: &str) -> IResult<&str, DialVal> {
 	delimited(
 		char('('),
 		list_content,
@@ -42,7 +42,7 @@ fn sexpr_inner(input: &str) -> IResult<&str, DialVal<'_>> {
 	)(input)
 }
 
-fn list_content(input: &str) -> IResult<&str, DialVal<'_>> {
+fn list_content(input: &str) -> IResult<&str, DialVal> {
 	map(
 		preceded(
 			multispace0,
@@ -52,32 +52,32 @@ fn list_content(input: &str) -> IResult<&str, DialVal<'_>> {
 	)(input)
 }
 
-fn atom_sexpr(input: &str) -> IResult<&str, DialVal<'_>> {
+fn atom_sexpr(input: &str) -> IResult<&str, DialVal> {
 	map(atom, |a| DialVal::Atom(a))(input)
 }
 
-fn atom(input: &str) -> IResult<&str, Atom<'_>> {
+fn atom(input: &str) -> IResult<&str, Atom> {
 	alt((float_atom, int_atom, str_atom, keyword_atom, sym_atom))(input)
 }
 
-fn int_atom(input: &str) -> IResult<&str, Atom<'_>> {
+fn int_atom(input: &str) -> IResult<&str, Atom> {
 	map(int, |i: i64| Atom::Int(i))(input)
 }
 
-fn float_atom(input: &str) -> IResult<&str, Atom<'_>> {
+fn float_atom(input: &str) -> IResult<&str, Atom> {
 	map(float, |f: f64| Atom::Float(f))(input)
 }
 
-fn str_atom(input: &str) -> IResult<&str, Atom<'_>> {
-	map(str, |s| Atom::Str(s))(input)
+fn str_atom(input: &str) -> IResult<&str, Atom> {
+	map(str, |s| Atom::Str(s.into()))(input)
 }
 
-fn keyword_atom(input: &str) -> IResult<&str, Atom<'_>> {
-	map(keyword, |s| Atom::Keyword(s))(input)
+fn keyword_atom(input: &str) -> IResult<&str, Atom> {
+	map(keyword, |s| Atom::Keyword(s.into()))(input)
 }
 
-fn sym_atom(input: &str) -> IResult<&str, Atom<'_>> {
-	map(sym, |s| Atom::Sym(s))(input)
+fn sym_atom(input: &str) -> IResult<&str, Atom> {
+	map(sym, |s| Atom::Sym(s.into()))(input)
 }
 
 fn int(input: &str) -> IResult<&str, i64> {
@@ -193,16 +193,16 @@ mod tests {
 	#[test]
 	fn atom_test() {
 		let inputs = vec!["12", "-34.5", r#""foo bar""#, ":foo", "foo"];
-		let res: Vec<Atom<'_>> = inputs.iter().map(|s| atom(s).unwrap().1).collect();
+		let res: Vec<Atom> = inputs.iter().map(|s| atom(s).unwrap().1).collect();
 
 		assert_eq!(
 			res,
 			vec![
 				Atom::Int(12),
 				Atom::Float(-34.5),
-				Atom::Str("foo bar"),
-				Atom::Keyword("foo"),
-				Atom::Sym("foo")
+				Atom::Str("foo bar".into()),
+				Atom::Keyword("foo".into()),
+				Atom::Sym("foo".into())
 			]
 		);
 
@@ -213,18 +213,22 @@ mod tests {
 	#[test]
 	fn odd_symbols_parse() {
 		let inputs = vec!["+", "foo/bar", "baz-quux"];
-		let res: Vec<Atom<'_>> = inputs.iter().map(|s| atom(s).unwrap().1).collect();
+		let res: Vec<Atom> = inputs.iter().map(|s| atom(s).unwrap().1).collect();
 
 		assert_eq!(
 			res,
-			vec![Atom::Sym("+"), Atom::Sym("foo/bar"), Atom::Sym("baz-quux")]
+			vec![
+				Atom::Sym("+".into()),
+				Atom::Sym("foo/bar".into()),
+				Atom::Sym("baz-quux".into())
+			]
 		);
 	}
 
 	#[test]
 	fn int_test() {
 		let inputs = vec!["-123", "4", "0"];
-		let res: Vec<Atom<'_>> = inputs.iter().map(|s| int_atom(s).unwrap().1).collect();
+		let res: Vec<Atom> = inputs.iter().map(|s| int_atom(s).unwrap().1).collect();
 
 		assert_eq!(res, vec![Atom::Int(-123), Atom::Int(4), Atom::Int(0)]);
 	}
@@ -232,7 +236,7 @@ mod tests {
 	#[test]
 	fn float_test() {
 		let inputs = vec!["0.123", "4.56", "-7.089"];
-		let res: Vec<Atom<'_>> = inputs.iter().map(|s| float_atom(s).unwrap().1).collect();
+		let res: Vec<Atom> = inputs.iter().map(|s| float_atom(s).unwrap().1).collect();
 		assert_eq!(
 			res,
 			vec![Atom::Float(0.123), Atom::Float(4.56), Atom::Float(-7.89)]

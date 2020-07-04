@@ -3,13 +3,12 @@ use std::cmp::PartialEq;
 use std::fmt::{self, Debug, Display};
 
 #[derive(Clone)]
-pub enum DialVal<'s> {
-	// TODO flatten?
-	Atom(Atom<'s>),
-	List(Vec<DialVal<'s>>),
+pub enum DialVal {
+	Atom(Atom),
+	List(Vec<DialVal>),
 }
 
-impl<'s> Display for DialVal<'s> {
+impl Display for DialVal {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		match self {
 			DialVal::Atom(a) => write!(f, "{}", a),
@@ -30,7 +29,7 @@ impl<'s> Display for DialVal<'s> {
 	}
 }
 
-impl<'d> Debug for DialVal<'d> {
+impl Debug for DialVal {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		match self {
 			DialVal::Atom(a) => write!(f, "{:?}", a),
@@ -51,8 +50,8 @@ impl<'d> Debug for DialVal<'d> {
 	}
 }
 
-impl<'d> PartialEq for DialVal<'d> {
-	fn eq(&self, other: &DialVal<'d>) -> bool {
+impl PartialEq for DialVal {
+	fn eq(&self, other: &DialVal) -> bool {
 		match (self, other) {
 			(DialVal::Atom(left), DialVal::Atom(right)) => left == right,
 			(DialVal::List(left), DialVal::List(right)) => {
@@ -69,13 +68,13 @@ impl<'d> PartialEq for DialVal<'d> {
 	}
 }
 
-impl<'s> From<Atom<'s>> for DialVal<'s> {
-	fn from(a: Atom<'s>) -> DialVal<'s> {
+impl From<Atom> for DialVal {
+	fn from(a: Atom) -> DialVal {
 		DialVal::Atom(a)
 	}
 }
 
-impl<'s> DialVal<'s> {
+impl DialVal {
 	pub fn is_number(&self) -> bool {
 		match self {
 			DialVal::Atom(a) => matches!(a, Atom::Int(_) | Atom::Float(_)),
@@ -88,43 +87,41 @@ impl<'s> DialVal<'s> {
 	}
 }
 
-pub type BuiltinFunc<'f> = fn(&[DialVal<'f>]) -> EvalResult<'f>;
+pub type BuiltinFunc = fn(&[DialVal]) -> EvalResult;
 
 #[derive(Clone)]
-pub enum Atom<'a> {
+// TODO it is not ideal that we have to heap allocate so much string data. find a way to optimize
+pub enum Atom {
 	Nil,
 	Bool(bool),
 	Int(i64),
 	Float(f64),
-	Str(&'a str),
-	Sym(&'a str),
-	Keyword(&'a str),
-	Vec(Vec<Atom<'a>>),
-	Fn {
-		name: &'a str,
-		func: BuiltinFunc<'a>,
-	},
+	Str(String),
+	Sym(String),
+	Keyword(String),
+	Vec(Vec<Atom>),
+	Fn { name: String, func: BuiltinFunc },
 }
 
-impl<'a> From<i64> for Atom<'a> {
-	fn from(i: i64) -> Atom<'a> {
+impl From<i64> for Atom {
+	fn from(i: i64) -> Atom {
 		Atom::Int(i)
 	}
 }
 
-impl<'a> From<f64> for Atom<'a> {
-	fn from(f: f64) -> Atom<'a> {
+impl From<f64> for Atom {
+	fn from(f: f64) -> Atom {
 		Atom::Float(f)
 	}
 }
 
-impl<'a> From<bool> for Atom<'a> {
-	fn from(b: bool) -> Atom<'a> {
+impl From<bool> for Atom {
+	fn from(b: bool) -> Atom {
 		Atom::Bool(b)
 	}
 }
 
-impl<'a> Display for Atom<'a> {
+impl Display for Atom {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		match self {
 			Atom::Nil => write!(f, "nil"),
@@ -143,7 +140,7 @@ impl<'a> Display for Atom<'a> {
 	}
 }
 
-impl<'a> Debug for Atom<'a> {
+impl Debug for Atom {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		match self {
 			Atom::Nil => write!(f, "nil"),
@@ -173,8 +170,8 @@ macro_rules! auto_eq_list {
 	}
 }
 
-impl<'a> PartialEq for Atom<'a> {
-	fn eq(&self, other: &Atom<'a>) -> bool {
+impl PartialEq for Atom {
+	fn eq(&self, other: &Atom) -> bool {
 		match (self, other) {
 			(
 				Atom::Fn {
