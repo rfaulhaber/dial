@@ -1,6 +1,8 @@
-use super::EvalResult;
+use super::{EvalError, EvalResult};
 use std::cmp::PartialEq;
 use std::fmt::{self, Debug, Display};
+
+pub type Number = f64;
 
 #[derive(Clone)]
 pub enum DialVal {
@@ -84,6 +86,23 @@ impl DialVal {
 
 	pub fn is_list(&self) -> bool {
 		matches!(self, DialVal::List(_))
+	}
+
+	pub fn try_as_number(&self) -> Result<f64, EvalError> {
+		match self {
+			DialVal::Atom(a) => match a {
+				Atom::Int(i) => Ok(*i as f64),
+				Atom::Float(f) => Ok(*f),
+				_ => Err(EvalError::TypeError(format!(
+					"non-numeric type specified: {}",
+					self
+				))),
+			},
+			_ => Err(EvalError::TypeError(format!(
+				"non-numeric type specified: {}",
+				self
+			))),
+		}
 	}
 }
 

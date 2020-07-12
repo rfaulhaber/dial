@@ -31,6 +31,8 @@ pub enum EvalError {
 	Undefined(String),
 	#[error("TypeError: expected {0}")]
 	TypeError(String),
+	#[error("ArityError: wrong number of args ({0})")]
+	ArityError(usize),
 }
 
 #[derive(Clone)]
@@ -48,6 +50,30 @@ impl Default for Env {
 			DialVal::Atom(Atom::Fn {
 				name: "+".into(),
 				func: env::add,
+			}),
+		);
+
+		root.insert(
+			"-".into(),
+			DialVal::Atom(Atom::Fn {
+				name: "-".into(),
+				func: env::sub,
+			}),
+		);
+
+		root.insert(
+			"*".into(),
+			DialVal::Atom(Atom::Fn {
+				name: "*".into(),
+				func: env::mul,
+			}),
+		);
+
+		root.insert(
+			"/".into(),
+			DialVal::Atom(Atom::Fn {
+				name: "/".into(),
+				func: env::div,
 			}),
 		);
 
@@ -133,11 +159,13 @@ pub fn eval(val: DialVal, env: &mut Env) -> EvalResult {
 				let (first, rest) = l.split_at(1);
 
 				let first = first.get(0).unwrap();
+				let rest: Result<Vec<DialVal>, EvalError> =
+					rest.iter().map(|val| eval(val.clone(), env)).collect();
 
 				match eval(first.clone(), env) {
 					Ok(dv) => match dv {
 						DialVal::Atom(a) => match a {
-							Atom::Fn { func, .. } => func(rest),
+							Atom::Fn { func, .. } => func(rest?.as_slice()),
 							_ => Err(EvalError::TypeError(format!("{} is not a function", first))),
 						},
 						_ => Err(EvalError::TypeError(format!("{} is not a function", first))),
@@ -165,6 +193,8 @@ mod mal_tests {
 			"(- 5 4 1)",
 			"(* 0.5 0.5 0.5)",
 			"(/ 1 2 3)",
+			"(+ 2 3)",
+			"(+ 2 (* 3 4))",
 		];
 
 		let mut env = Env::default();
@@ -178,10 +208,12 @@ mod mal_tests {
 			results,
 			vec![
 				Ok(DialVal::Atom(Atom::Int(1))),
-				Ok(DialVal::Atom(Atom::Int(6))),
-				Ok(DialVal::Atom(Atom::Int(0))),
+				Ok(DialVal::Atom(Atom::Float(6.0))),
+				Ok(DialVal::Atom(Atom::Float(0.0))),
 				Ok(DialVal::Atom(Atom::Float(0.125))),
 				Ok(DialVal::Atom(Atom::Float(1.0 / 6.0))),
+				Ok(DialVal::Atom(Atom::Float(5.0))),
+				Ok(DialVal::Atom(Atom::Float(14.0))),
 			]
 		)
 	}
