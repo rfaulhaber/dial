@@ -1,13 +1,13 @@
-pub mod ast;
 pub mod env;
 pub mod parse;
+pub mod sexpr;
 
 use std::{cell::RefCell, collections::HashMap};
 
 use anyhow::Result;
 use thiserror::Error;
 
-use ast::{Atom, DialVal};
+use sexpr::{Atom, DialVal};
 
 macro_rules! extract_atom_val {
 	($val:ident, $b:block, $($p:path)|+) => {
@@ -21,7 +21,7 @@ macro_rules! extract_atom_val {
 	}
 }
 
-pub type EvalResult = Result<ast::DialVal, EvalError>;
+pub type EvalResult = Result<DialVal, EvalError>;
 
 #[derive(Error, Debug, PartialEq)]
 pub enum EvalError {
@@ -132,6 +132,19 @@ pub fn eval(val: DialVal, env: &mut Env) -> EvalResult {
                         },
                         _ => Err(EvalError::TypeError(format!("{} is not a function", first))),
                     },
+                    Err(e) => Err(e),
+                }
+            }
+        }
+        DialVal::Vec(v) => {
+            if v.is_empty() {
+                Ok(DialVal::Vec(vec![]))
+            } else {
+                let new_vec: Result<Vec<DialVal>, EvalError> =
+                    v.iter().map(|val| eval(val.clone(), env)).collect();
+
+                match new_vec {
+                    Ok(v) => Ok(DialVal::Vec(v)),
                     Err(e) => Err(e),
                 }
             }

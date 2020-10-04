@@ -8,6 +8,7 @@ pub type Number = f64;
 pub enum DialVal {
     Atom(Atom),
     List(Vec<DialVal>),
+    Vec(Vec<DialVal>),
 }
 
 impl Display for DialVal {
@@ -26,6 +27,19 @@ impl Display for DialVal {
                 }
 
                 write!(f, ")")
+            }
+            DialVal::Vec(l) => {
+                write!(f, "[")?;
+
+                for (i, v) in l.iter().enumerate() {
+                    if i == l.len() - 1 {
+                        write!(f, "{}", v)?;
+                    } else {
+                        write!(f, "{} ", v)?;
+                    }
+                }
+
+                write!(f, "]")
             }
         }
     }
@@ -47,6 +61,19 @@ impl Debug for DialVal {
                 }
 
                 write!(f, ")")
+            }
+            DialVal::Vec(l) => {
+                write!(f, "[")?;
+
+                for (i, v) in l.iter().enumerate() {
+                    if i == l.len() - 1 {
+                        write!(f, "{:?}", v)?;
+                    } else {
+                        write!(f, "{:?} ", v)?;
+                    }
+                }
+
+                write!(f, "]")
             }
         }
     }
@@ -108,8 +135,8 @@ impl DialVal {
 
 pub type BuiltinFunc = fn(&[DialVal]) -> EvalResult;
 
+// TODO convert to &str
 #[derive(Clone)]
-// TODO it is not ideal that we have to heap allocate so much string data. find a way to optimize
 pub enum Atom {
     Nil,
     Bool(bool),
@@ -118,7 +145,6 @@ pub enum Atom {
     Str(String),
     Sym(String),
     Keyword(String),
-    Vec(Vec<Atom>),
     Fn { name: String, func: BuiltinFunc },
 }
 
@@ -150,10 +176,6 @@ impl Display for Atom {
             Atom::Sym(v) => write!(f, "{}", v),
             Atom::Str(v) => write!(f, "\"{}\"", v),
             Atom::Keyword(v) => write!(f, ":{}", v),
-            Atom::Vec(v) => {
-                let val_strs: Vec<String> = v.iter().map(|v| format!("{}", v)).collect();
-                write!(f, "[{}]", val_strs.join(", "))
-            }
             Atom::Fn { name, .. } => write!(f, "#builtin: {}", name),
         }
     }
@@ -169,10 +191,6 @@ impl Debug for Atom {
             Atom::Sym(v) => write!(f, "sym({:?})", v),
             Atom::Str(v) => write!(f, "str(\"{:?}\")", v),
             Atom::Keyword(v) => write!(f, "kw(:{:?})", v),
-            Atom::Vec(v) => {
-                let val_strs: Vec<String> = v.iter().map(|v| format!("{:?}", v)).collect();
-                write!(f, "vec([{}])", val_strs.join(", "))
-            }
             Atom::Fn { name, .. } => write!(f, "#builtin: {:?}", name),
         }
     }
@@ -209,8 +227,7 @@ impl PartialEq for Atom {
                 Atom::Float,
                 Atom::Sym,
                 Atom::Str,
-                Atom::Keyword,
-                Atom::Vec
+                Atom::Keyword
             ),
         }
     }

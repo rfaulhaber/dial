@@ -1,4 +1,4 @@
-use super::ast::*;
+use super::sexpr::*;
 use super::{EvalError, EvalResult};
 
 pub fn add(vals: &[DialVal]) -> EvalResult {

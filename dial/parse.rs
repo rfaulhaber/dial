@@ -1,12 +1,12 @@
-use super::ast::*;
+use super::sexpr::*;
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_until, take_while},
     character::complete::{anychar, char, digit1, multispace0, multispace1},
     combinator::{cut, map, map_res, recognize, verify},
+    error::ParseError as NomParseError,
     multi::separated_list,
-    sequence::pair,
-    sequence::{delimited, preceded, tuple},
+    sequence::{delimited, pair, preceded, tuple},
     IResult,
 };
 
@@ -31,25 +31,11 @@ pub fn parse_sexpr(input: String) -> ParseResult<DialVal> {
 }
 
 fn sexpr(input: &str) -> IResult<&str, DialVal> {
-    preceded(multispace0, alt((atom_sexpr, sexpr_inner)))(input)
+    preceded(multispace0, alt((atom_sexpr, sexpr_inner, vector)))(input)
 }
 
 fn sexpr_inner(input: &str) -> IResult<&str, DialVal> {
-    delimited(
-        char('('),
-        list_content,
-        preceded(multispace0, cut(char(')'))),
-    )(input)
-}
-
-fn list_content(input: &str) -> IResult<&str, DialVal> {
-    map(
-        preceded(
-            multispace0,
-            separated_list(multispace1, alt((atom_sexpr, sexpr_inner))),
-        ),
-        |v| DialVal::List(v),
-    )(input)
+    inner_list(input, '(', ')', |v| DialVal::List(v))
 }
 
 fn atom_sexpr(input: &str) -> IResult<&str, DialVal> {
@@ -58,6 +44,10 @@ fn atom_sexpr(input: &str) -> IResult<&str, DialVal> {
 
 fn atom(input: &str) -> IResult<&str, Atom> {
     alt((float_atom, int_atom, str_atom, keyword_atom, sym_atom))(input)
+}
+
+fn vector(input: &str) -> IResult<&str, DialVal> {
+    inner_list(input, '[', ']', |v| DialVal::Vec(v))
 }
 
 fn int_atom(input: &str) -> IResult<&str, Atom> {
@@ -114,6 +104,29 @@ fn sym(input: &str) -> IResult<&str, &str> {
     ))(input)
 }
 
+// TODO make return function
+fn inner_list<F>(
+    input: &str,
+    open_delim: char,
+    close_delim: char,
+    func: F,
+) -> IResult<&str, DialVal>
+where
+    F: Fn(Vec<DialVal>) -> DialVal,
+{
+    delimited(
+        char(open_delim),
+        map(
+            preceded(
+                multispace0,
+                separated_list(multispace1, alt((atom_sexpr, sexpr_inner, vector))),
+            ),
+            func,
+        ),
+        preceded(multispace0, cut(char(close_delim))),
+    )(input)
+}
+
 fn valid_first_sym_char(c: &char) -> bool {
     !c.is_whitespace() && !c.is_numeric() && !is_never_symbol(c)
 }
@@ -123,7 +136,7 @@ fn valid_sym_char(c: char) -> bool {
 }
 
 fn is_never_symbol(c: &char) -> bool {
-    matches!(c, '(' | ')')
+    matches!(c, '(' | ')' | '[' | ']')
 }
 
 #[cfg(test)]
