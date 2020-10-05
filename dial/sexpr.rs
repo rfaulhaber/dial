@@ -83,7 +83,8 @@ impl PartialEq for DialVal {
     fn eq(&self, other: &DialVal) -> bool {
         match (self, other) {
             (DialVal::Atom(left), DialVal::Atom(right)) => left == right,
-            (DialVal::List(left), DialVal::List(right)) => {
+            (DialVal::List(left), DialVal::List(right))
+            | (DialVal::Vec(left), DialVal::Vec(right)) => {
                 for (l_val, r_val) in left.iter().zip(right.iter()) {
                     if l_val != r_val {
                         return false;

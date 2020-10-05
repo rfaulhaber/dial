@@ -35,7 +35,7 @@ fn sexpr(input: &str) -> IResult<&str, DialVal> {
 }
 
 fn sexpr_inner(input: &str) -> IResult<&str, DialVal> {
-    inner_list(input, '(', ')', |v| DialVal::List(v))
+    inner_list('(', ')', |v| DialVal::List(v))(input)
 }
 
 fn atom_sexpr(input: &str) -> IResult<&str, DialVal> {
@@ -47,7 +47,7 @@ fn atom(input: &str) -> IResult<&str, Atom> {
 }
 
 fn vector(input: &str) -> IResult<&str, DialVal> {
-    inner_list(input, '[', ']', |v| DialVal::Vec(v))
+    inner_list('[', ']', |v| DialVal::Vec(v))(input)
 }
 
 fn int_atom(input: &str) -> IResult<&str, Atom> {
@@ -105,12 +105,11 @@ fn sym(input: &str) -> IResult<&str, &str> {
 }
 
 // TODO make return function
-fn inner_list<F>(
-    input: &str,
+fn inner_list<'a, F>(
     open_delim: char,
     close_delim: char,
     func: F,
-) -> IResult<&str, DialVal>
+) -> impl Fn(&'a str) -> IResult<&'a str, DialVal>
 where
     F: Fn(Vec<DialVal>) -> DialVal,
 {
@@ -124,7 +123,7 @@ where
             func,
         ),
         preceded(multispace0, cut(char(close_delim))),
-    )(input)
+    )
 }
 
 fn valid_first_sym_char(c: &char) -> bool {
@@ -254,5 +253,33 @@ mod tests {
             res,
             vec![Atom::Float(0.123), Atom::Float(4.56), Atom::Float(-7.89)]
         );
+    }
+
+    #[test]
+    fn vector_test() {
+        let input = "[1 2 [3 4 5.5] (+ 6 7 [8 9 10])]";
+        let result = vector(input);
+
+        let expected = DialVal::Vec(vec![
+            Atom::Int(1).into(),
+            Atom::Int(2).into(),
+            DialVal::Vec(vec![
+                Atom::Int(3).into(),
+                Atom::Int(4).into(),
+                Atom::Float(5.5).into(),
+            ]),
+            DialVal::List(vec![
+                Atom::Sym("+".into()).into(),
+                Atom::Int(6).into(),
+                Atom::Int(7).into(),
+                DialVal::Vec(vec![
+                    Atom::Int(8).into(),
+                    Atom::Int(9).into(),
+                    Atom::Int(10).into(),
+                ]),
+            ]),
+        ]);
+
+        assert_eq!(result, Ok(("", expected)));
     }
 }
