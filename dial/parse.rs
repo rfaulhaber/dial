@@ -3,9 +3,9 @@ use nom::{
     branch::alt,
     bytes::complete::{tag, take_until, take_while},
     character::complete::{anychar, char, digit1, multispace0, multispace1},
-    combinator::{cut, map, map_res, recognize, verify},
+    combinator::{all_consuming, cut, map, map_res, recognize, verify},
     error::ParseError as NomParseError,
-    multi::separated_list,
+    multi::{many1, separated_list},
     sequence::{delimited, pair, preceded, tuple},
     IResult,
 };
@@ -21,6 +21,15 @@ pub struct ParseError {
     msg: String,
 }
 
+pub fn parse_program(input: String) -> ParseResult<Vec<DialVal>> {
+    match program(&input) {
+        Ok((_, expr)) => Ok(expr),
+        Err(src) => Err(ParseError {
+            msg: format!("{}", src),
+        }),
+    }
+}
+
 pub fn parse_sexpr(input: String) -> ParseResult<DialVal> {
     match sexpr(&input) {
         Ok((_, expr)) => Ok(expr),
@@ -28,6 +37,10 @@ pub fn parse_sexpr(input: String) -> ParseResult<DialVal> {
             msg: format!("{}", src),
         }),
     }
+}
+
+fn program(input: &str) -> IResult<&str, Vec<DialVal>> {
+    all_consuming(many1(sexpr))(input)
 }
 
 fn sexpr(input: &str) -> IResult<&str, DialVal> {

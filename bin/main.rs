@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 
 use anyhow::Result;
-use dial::{eval, parse, Env};
+use dial::{eval, read, Env, EvalResult};
 use rustyline::{error::ReadlineError, Editor};
 
 fn main() {
@@ -15,14 +15,24 @@ pub fn repl() -> Result<()> {
         let line_res = rl.readline(">> ");
         match line_res {
             Ok(line) => {
+                rl.add_history_entry(&line);
                 let mut env = env.borrow_mut();
-                let expr = parse::parse_sexpr(line);
+                let exprs_res = read(line);
 
-                match expr {
-                    Ok(e) => match eval(e, &mut env) {
-                        Ok(out) => println!("{}", out),
-                        Err(out) => println!("{:?}", out),
-                    },
+                match exprs_res {
+                    Ok(exprs) => {
+                        let res: Vec<EvalResult> = exprs
+                            .iter()
+                            .map(|expr| eval(expr.clone(), &mut env))
+                            .collect();
+
+                        for r in res {
+                            match r {
+                                Ok(out) => println!("{}", out),
+                                Err(out) => println!("{:?}", out),
+                            }
+                        }
+                    }
                     Err(out) => println!("{:?}", out),
                 }
             }
@@ -35,7 +45,7 @@ pub fn repl() -> Result<()> {
                 break;
             }
             Err(err) => {
-                println!("Error: {:?}", err);
+                eprintln!("Error: {:?}", err);
                 break;
             }
         }

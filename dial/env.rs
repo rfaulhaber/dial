@@ -61,6 +61,12 @@ pub fn div(vals: &[DialVal]) -> EvalResult {
             let first_num = first.get(0).unwrap().try_as_number()?;
             let prod = mul(rest)?.try_as_number()?;
 
+            if prod == 0.0 {
+                return Err(EvalError::InvalidArgumentError(
+                    "cannot divide by zero".into(),
+                ));
+            }
+
             Ok(DialVal::Atom(Atom::Float(first_num / prod)))
         }
     }

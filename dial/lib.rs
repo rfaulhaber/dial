@@ -7,6 +7,7 @@ use std::{cell::RefCell, collections::HashMap};
 use anyhow::Result;
 use thiserror::Error;
 
+use parse::ParseResult;
 use sexpr::{Atom, DialVal};
 
 macro_rules! extract_atom_val {
@@ -31,6 +32,8 @@ pub enum EvalError {
     TypeError(String),
     #[error("ArityError: wrong number of args ({0})")]
     ArityError(usize),
+    #[error("InvalidArgumentError: {0}")]
+    InvalidArgumentError(String),
 }
 
 #[derive(Clone)]
@@ -101,8 +104,8 @@ impl Env {
     }
 }
 
-pub fn read(input: String) -> EvalResult {
-    unimplemented!();
+pub fn read(input: String) -> ParseResult<Vec<DialVal>> {
+    parse::parse_program(input)
 }
 
 pub fn eval(val: DialVal, env: &mut Env) -> EvalResult {
