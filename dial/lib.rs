@@ -1,4 +1,4 @@
-pub mod env;
+pub mod builtin;
 pub mod parse;
 pub mod sexpr;
 
@@ -38,7 +38,7 @@ pub enum EvalError {
 
 #[derive(Clone)]
 pub struct Env {
-    symbol_map: HashMap<String, DialVal>,
+    symbol_map: RefCell<HashMap<String, DialVal>>,
     scope: Option<Box<Env>>,
 }
 
@@ -50,7 +50,7 @@ impl Default for Env {
             "+".into(),
             DialVal::Atom(Atom::Fn {
                 name: "+".into(),
-                func: env::add,
+                func: builtin::add,
             }),
         );
 
@@ -58,7 +58,7 @@ impl Default for Env {
             "-".into(),
             DialVal::Atom(Atom::Fn {
                 name: "-".into(),
-                func: env::sub,
+                func: builtin::sub,
             }),
         );
 
@@ -66,7 +66,7 @@ impl Default for Env {
             "*".into(),
             DialVal::Atom(Atom::Fn {
                 name: "*".into(),
-                func: env::mul,
+                func: builtin::mul,
             }),
         );
 
@@ -74,12 +74,12 @@ impl Default for Env {
             "/".into(),
             DialVal::Atom(Atom::Fn {
                 name: "/".into(),
-                func: env::div,
+                func: builtin::div,
             }),
         );
 
         Env {
-            symbol_map: root,
+            symbol_map: RefCell::new(root),
             scope: None,
         }
     }
@@ -88,19 +88,27 @@ impl Default for Env {
 impl Env {
     pub fn with_scope(scope: Env) -> Env {
         Env {
-            symbol_map: HashMap::new(),
+            symbol_map: RefCell::new(HashMap::new()),
             scope: Some(Box::new(scope)),
         }
     }
 
-    pub fn get_value(&self, sym: String) -> Option<&DialVal> {
-        self.symbol_map.get(&sym).or_else(|| {
-            if let Some(scope) = &self.scope {
-                scope.get_value(sym)
-            } else {
-                None
-            }
-        })
+    pub fn get_value(&self, sym: String) -> Option<DialVal> {
+        let map = self.symbol_map.borrow();
+
+        let res = map.get(&sym);
+
+        match res {
+            Some(val) => Some(val.clone()),
+            None => match &self.scope {
+                Some(scope) => scope.get_value(sym),
+                None => None,
+            },
+        }
+    }
+
+    pub fn set_value(&self, sym: String, val: DialVal) {
+        self.symbol_map.borrow_mut().insert(sym, val);
     }
 }
 
@@ -113,7 +121,7 @@ pub fn eval(val: DialVal, env: &mut Env) -> EvalResult {
         DialVal::Atom(a) => match a {
             Atom::Sym(s) => env
                 .get_value(s)
-                .cloned()
+                .clone()
                 .ok_or_else(|| EvalError::Undefined("no such symbol".into())),
             _ => Ok(a.clone().into()),
         },

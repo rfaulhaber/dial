@@ -146,6 +146,7 @@ pub enum Atom {
     Str(String),
     Sym(String),
     Keyword(String),
+    // TODO add both Builtin (Rust code) and Lambda (user defined) variants
     Fn { name: String, func: BuiltinFunc },
 }
 

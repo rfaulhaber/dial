@@ -1,5 +1,9 @@
+use crate::Env;
+
 use super::sexpr::*;
 use super::{EvalError, EvalResult};
+
+pub type BuiltinFunc = fn(&[DialVal]) -> EvalResult;
 
 pub fn add(vals: &[DialVal]) -> EvalResult {
     let mut sum = 0.0;
