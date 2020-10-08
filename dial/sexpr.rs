@@ -1,3 +1,4 @@
+use super::builtin::BuiltinFunc;
 use super::{EvalError, EvalResult};
 use std::cmp::PartialEq;
 use std::fmt::{self, Debug, Display};
@@ -134,8 +135,6 @@ impl DialVal {
     }
 }
 
-pub type BuiltinFunc = fn(&[DialVal]) -> EvalResult;
-
 // TODO convert to &str
 #[derive(Clone)]
 pub enum Atom {
@@ -147,7 +146,7 @@ pub enum Atom {
     Sym(String),
     Keyword(String),
     // TODO add both Builtin (Rust code) and Lambda (user defined) variants
-    Fn { name: String, func: BuiltinFunc },
+    Builtin { name: String, func: BuiltinFunc },
 }
 
 impl From<i64> for Atom {
@@ -178,7 +177,7 @@ impl Display for Atom {
             Atom::Sym(v) => write!(f, "{}", v),
             Atom::Str(v) => write!(f, "\"{}\"", v),
             Atom::Keyword(v) => write!(f, ":{}", v),
-            Atom::Fn { name, .. } => write!(f, "#builtin: {}", name),
+            Atom::Builtin { name, .. } => write!(f, "#builtin: {}", name),
         }
     }
 }
@@ -193,7 +192,7 @@ impl Debug for Atom {
             Atom::Sym(v) => write!(f, "sym({:?})", v),
             Atom::Str(v) => write!(f, "str(\"{:?}\")", v),
             Atom::Keyword(v) => write!(f, "kw(:{:?})", v),
-            Atom::Fn { name, .. } => write!(f, "#builtin: {:?}", name),
+            Atom::Builtin { name, .. } => write!(f, "#builtin: {:?}", name),
         }
     }
 }
@@ -213,10 +212,10 @@ impl PartialEq for Atom {
     fn eq(&self, other: &Atom) -> bool {
         match (self, other) {
             (
-                Atom::Fn {
+                Atom::Builtin {
                     name: left_name, ..
                 },
-                Atom::Fn {
+                Atom::Builtin {
                     name: right_name, ..
                 },
             ) => left_name == right_name,

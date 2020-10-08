@@ -1,12 +1,12 @@
 pub mod builtin;
+pub mod env;
 pub mod parse;
 pub mod sexpr;
-
-use std::{cell::RefCell, collections::HashMap};
 
 use anyhow::Result;
 use thiserror::Error;
 
+pub use env::Env;
 use parse::ParseResult;
 use sexpr::{Atom, DialVal};
 
@@ -36,93 +36,18 @@ pub enum EvalError {
     InvalidArgumentError(String),
 }
 
-#[derive(Clone)]
-pub struct Env {
-    symbol_map: RefCell<HashMap<String, DialVal>>,
-    scope: Option<Box<Env>>,
-}
-
-impl Default for Env {
-    fn default() -> Self {
-        let mut root = HashMap::new();
-
-        root.insert(
-            "+".into(),
-            DialVal::Atom(Atom::Fn {
-                name: "+".into(),
-                func: builtin::add,
-            }),
-        );
-
-        root.insert(
-            "-".into(),
-            DialVal::Atom(Atom::Fn {
-                name: "-".into(),
-                func: builtin::sub,
-            }),
-        );
-
-        root.insert(
-            "*".into(),
-            DialVal::Atom(Atom::Fn {
-                name: "*".into(),
-                func: builtin::mul,
-            }),
-        );
-
-        root.insert(
-            "/".into(),
-            DialVal::Atom(Atom::Fn {
-                name: "/".into(),
-                func: builtin::div,
-            }),
-        );
-
-        Env {
-            symbol_map: RefCell::new(root),
-            scope: None,
-        }
-    }
-}
-
-impl Env {
-    pub fn with_scope(scope: Env) -> Env {
-        Env {
-            symbol_map: RefCell::new(HashMap::new()),
-            scope: Some(Box::new(scope)),
-        }
-    }
-
-    pub fn get_value(&self, sym: String) -> Option<DialVal> {
-        let map = self.symbol_map.borrow();
-
-        let res = map.get(&sym);
-
-        match res {
-            Some(val) => Some(val.clone()),
-            None => match &self.scope {
-                Some(scope) => scope.get_value(sym),
-                None => None,
-            },
-        }
-    }
-
-    pub fn set_value(&self, sym: String, val: DialVal) {
-        self.symbol_map.borrow_mut().insert(sym, val);
-    }
-}
-
 pub fn read(input: String) -> ParseResult<Vec<DialVal>> {
     parse::parse_program(input)
 }
 
 pub fn eval(val: DialVal, env: &mut Env) -> EvalResult {
+    println!("val {:?}", val);
     match val {
         DialVal::Atom(a) => match a {
             Atom::Sym(s) => env
-                .get_value(s)
+                .get_value(s.clone())
                 .clone()
-                .ok_or_else(|| EvalError::Undefined("no such symbol".into())),
+                .ok_or_else(|| EvalError::Undefined(format!("no such symbol {}", s).into())),
             _ => Ok(a.clone().into()),
         },
         DialVal::List(l) => {
@@ -138,7 +63,7 @@ pub fn eval(val: DialVal, env: &mut Env) -> EvalResult {
                 match eval(first.clone(), env) {
                     Ok(dv) => match dv {
                         DialVal::Atom(a) => match a {
-                            Atom::Fn { func, .. } => func(rest?.as_slice()),
+                            Atom::Builtin { func, .. } => func(rest?.as_slice(), env),
                             _ => Err(EvalError::TypeError(format!("{} is not a function", first))),
                         },
                         _ => Err(EvalError::TypeError(format!("{} is not a function", first))),
@@ -202,5 +127,10 @@ mod mal_tests {
                 Ok(DialVal::Atom(Atom::Float(14.0))),
             ]
         )
+    }
+
+    #[test]
+    fn step_3_def() {
+        let inputs = vec!["(def foo 123)"];
     }
 }
