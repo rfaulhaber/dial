@@ -3,6 +3,12 @@ use super::{EvalError, EvalResult};
 use std::cmp::PartialEq;
 use std::fmt::{self, Debug, Display};
 
+macro_rules! atom {
+    ($atom_type:ident, $atom_val:literal) => {
+        DialVal::Atom(Atom::$atom_type($atom_val.into()))
+    };
+}
+
 pub type Number = f64;
 
 #[derive(Clone)]

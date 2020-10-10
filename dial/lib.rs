@@ -1,6 +1,7 @@
 pub mod builtin;
 pub mod env;
 pub mod parse;
+#[macro_use]
 pub mod sexpr;
 
 use anyhow::Result;
@@ -41,7 +42,6 @@ pub fn read(input: String) -> ParseResult<Vec<DialVal>> {
 }
 
 pub fn eval(val: DialVal, env: &mut Env) -> EvalResult {
-    println!("val {:?}", val);
     match val {
         DialVal::Atom(a) => match a {
             Atom::Sym(s) => env
@@ -57,6 +57,12 @@ pub fn eval(val: DialVal, env: &mut Env) -> EvalResult {
                 let (first, rest) = l.split_at(1);
 
                 let first = first.get(0).unwrap();
+
+                // TODO eliminate need for special rules
+                if first == &atom!(Sym, "def") {
+                    return builtin::def_fn(rest, env);
+                }
+
                 let rest: Result<Vec<DialVal>, EvalError> =
                     rest.iter().map(|val| eval(val.clone(), env)).collect();
 
@@ -131,6 +137,13 @@ mod mal_tests {
 
     #[test]
     fn step_3_def() {
-        let inputs = vec!["(def foo 123)"];
+        let mut env = Env::default();
+
+        let def_input = "(def foo 123)";
+
+        let input_parse = read(def_input.into()).unwrap().pop().unwrap();
+        let def_result = eval(input_parse, &mut env);
+
+        assert_eq!(def_result, Ok(DialVal::Atom(Atom::Int(123))));
     }
 }
