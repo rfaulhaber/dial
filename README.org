@@ -7,46 +7,5 @@ This is a work-in-progress and semi-faithful implementation of [[https://github.
 
 I'd like to create reasonably useful Clojure-inspired Lisp implementation.
 Beyond that this project is somewhat directionless.
-* Tasks
-** MAL steps
-*** [X] Step 3 :mal:
-*** [-] Step 4 :mal:
-*** [ ] Step 5 :mal:
-*** [ ] Step 6 :mal:
-*** [ ] Step 7 :mal:
-*** [ ] Step 8 :mal:
-*** [ ] Step 9 :mal:
-** Language features to implement
-*** [ ] Comments
-- Syntax
-  #+begin_src
-  ; this is a comment
-  #+end_src
-*** [ ] Ratio type
-- Syntax
-  #+begin_src
-  22/7
-  #+end_src
-- Automatically reduces
-- =ratio?= function
-- =numerator= function
-  #+begin_src
-  (numerator 22/7) ; => 22
-  #+end_src
-- =denominator= function
-  #+begin_src
-  (denominator 22/7) ; => 7
-  #+end_src
-*** [ ] Hash map
-- Syntax:
-  #+begin_src
-  { :foo bar :baz quux }
-  #+end_src
-- =hash-map= function
-*** [ ] Variadic functions
-- Syntax
-  #+begin_src
-  (defn foo [bar &baz]
-    (println bar baz))
-  #+end_src
-*** [ ] Concurrency
+
+See [[file:TODO.org][TODO]] for a list of tasks to be completed.
