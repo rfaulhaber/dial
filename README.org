@@ -1,6 +1,5 @@
-#+TITLE: README
+#+TITLE: Dial
 
-* Dial
 Dial Is A Lisp
 
 This is a work-in-progress and semi-faithful implementation of [[https://github.com/kanaka/mal/blob/master/process/guide.md][Make-A-Lisp]].
