@@ -1,8 +1,6 @@
-use crate::Env;
-
 use super::sexpr::*;
-
 use super::{EvalError, EvalResult};
+use crate::Env;
 
 pub type BuiltinFunc = fn(&[DialVal], &mut Env) -> EvalResult;
 
@@ -75,10 +73,6 @@ pub fn div(vals: &[DialVal], e: &mut Env) -> EvalResult {
             Ok(DialVal::Atom(Atom::Float(first_num / prod)))
         }
     }
-}
-
-pub fn let_fn(vals: &[DialVal], env: &mut Env) -> EvalResult {
-    todo!();
 }
 
 pub fn def_fn(vals: &[DialVal], env: &mut Env) -> EvalResult {

@@ -9,6 +9,30 @@ macro_rules! atom {
     };
 }
 
+macro_rules! sym {
+    ($val:literal) => {
+        DialVal::Atom(Atom::Sym($val.into()))
+    };
+}
+
+macro_rules! int {
+    ($val:literal) => {
+        DialVal::Atom(Atom::Int($val))
+    };
+}
+
+macro_rules! float {
+    ($val:literal) => {
+        DialVal::Atom(Atom::Float($val))
+    };
+}
+
+macro_rules! float {
+    ($val:literal) => {
+        DialVal::Atom(Atom::Float($val))
+    };
+}
+
 pub type Number = f64;
 
 #[derive(Clone)]
@@ -111,6 +135,30 @@ impl From<Atom> for DialVal {
     }
 }
 
+impl From<i64> for DialVal {
+    fn from(i: i64) -> DialVal {
+        DialVal::Atom(i.into())
+    }
+}
+
+impl From<f64> for DialVal {
+    fn from(f: f64) -> DialVal {
+        DialVal::Atom(f.into())
+    }
+}
+
+impl From<bool> for DialVal {
+    fn from(b: bool) -> DialVal {
+        DialVal::Atom(b.into())
+    }
+}
+
+impl From<&str> for DialVal {
+    fn from(s: &str) -> DialVal {
+        DialVal::Atom(s.into())
+    }
+}
+
 impl DialVal {
     pub fn is_number(&self) -> bool {
         match self {
@@ -170,6 +218,12 @@ impl From<f64> for Atom {
 impl From<bool> for Atom {
     fn from(b: bool) -> Atom {
         Atom::Bool(b)
+    }
+}
+
+impl From<&str> for Atom {
+    fn from(s: &str) -> Atom {
+        Atom::Str(s.into())
     }
 }
 
@@ -237,5 +291,15 @@ impl PartialEq for Atom {
                 Atom::Keyword
             ),
         }
+    }
+}
+
+impl Atom {
+    pub fn sym(s: &str) -> Atom {
+        Atom::Sym(s.into())
+    }
+
+    pub fn keyword(s: &str) -> Atom {
+        Atom::Keyword(s.into())
     }
 }

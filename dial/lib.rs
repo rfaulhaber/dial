@@ -54,13 +54,77 @@ pub fn eval(val: DialVal, env: &mut Env) -> EvalResult {
             if l.is_empty() {
                 Ok(DialVal::List(vec![]))
             } else {
+                // TODO error handling
                 let (first, rest) = l.split_at(1);
 
+                // TODO error handling
                 let first = first.get(0).unwrap();
 
                 // TODO eliminate need for special rules
                 if first == &atom!(Sym, "def") {
-                    return builtin::def_fn(rest, env);
+                    let sym = match rest.get(0) {
+                        Some(val) => val,
+                        None => return Err(EvalError::ArityError(0)), // TODO better error
+                    };
+
+                    let val = match rest.get(1) {
+                        Some(val) => val,
+                        None => return Err(EvalError::ArityError(1)),
+                    }
+                    .clone();
+
+                    let val_res = eval(val, env)?;
+
+                    return match sym {
+                        DialVal::Atom(Atom::Sym(s)) => {
+                            env.set_value(s.clone(), val_res.clone());
+                            Ok(val_res)
+                        }
+                        _ => {
+                            return Err(EvalError::InvalidArgumentError(
+                                "'def' requires binding to symbol".into(),
+                            ))
+                        }
+                    };
+                } else if first == &sym!("let") {
+                    // TODO remove need for cloning
+                    let mut scope = Env::with_scope(env.clone());
+
+                    let (list_sl, inner) = rest.split_at(1);
+
+                    // TODO error handling
+                    // TODO stop with all the cloning
+                    return match list_sl.get(0).unwrap().clone() {
+                        DialVal::List(l) => {
+                            for pair in l.into_iter().collect::<Vec<_>>().chunks(2) {
+                                let sym = pair.get(0).unwrap().clone();
+                                let val = pair.get(1).unwrap().clone();
+                                let val_res = eval(val, &mut scope);
+
+                                match sym {
+                                    DialVal::Atom(Atom::Sym(s)) => {
+                                        scope.set_value(s, val_res?);
+                                    }
+                                    _ => {
+                                        return Err(EvalError::TypeError(format!(
+                                            "expected symbol in let binding, found {}",
+                                            sym
+                                        )))
+                                    }
+                                }
+                            }
+
+                            inner
+                                .iter()
+                                // TODO stop cloning
+                                .map(|val| eval(val.clone(), &mut scope))
+                                .collect::<Result<Vec<DialVal>, EvalError>>()
+                                .map(|v| v.get(0).unwrap().clone())
+                        }
+                        _ => Err(EvalError::InvalidArgumentError(format!(
+                            "let binding expects a list of associations"
+                        ))),
+                    };
                 }
 
                 let rest: Result<Vec<DialVal>, EvalError> =
@@ -101,6 +165,7 @@ pub fn print(val: EvalResult) -> String {
 #[cfg(test)]
 mod mal_tests {
     use super::*;
+    use pretty_assertions::assert_eq;
 
     #[test]
     fn step_2_eval() {
@@ -145,5 +210,36 @@ mod mal_tests {
         let def_result = eval(input_parse, &mut env);
 
         assert_eq!(def_result, Ok(DialVal::Atom(Atom::Int(123))));
+    }
+
+    #[test]
+    fn step_3_provided_tests() {
+        let inputs = vec![
+            "(def a 6)",
+            "a",
+            "(def b (+ a 2))",
+            "(+ a b)",
+            "(let (c 2) c)",
+            "c",
+        ];
+
+        let mut env = Env::default();
+
+        let results: Vec<EvalResult> = inputs
+            .iter()
+            .map(|input| eval(read(input.to_string()).unwrap().pop().unwrap(), &mut env))
+            .collect();
+
+        assert_eq!(
+            results,
+            vec![
+                Ok(6.into()),
+                Ok(6.into()),
+                Ok(8.0.into()),
+                Ok(14.0.into()),
+                Ok(2.into()),
+                Err(EvalError::Undefined("no such symbol c".into()))
+            ]
+        )
     }
 }

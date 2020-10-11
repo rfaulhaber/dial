@@ -1,10 +1,10 @@
 use super::{builtin, Atom, DialVal};
-use std::{cell::RefCell, collections::HashMap};
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 #[derive(Clone)]
 pub struct Env {
     symbol_map: RefCell<HashMap<String, DialVal>>,
-    scope: Option<Box<Env>>,
+    scope: Option<Rc<Env>>,
 }
 
 impl Default for Env {
@@ -62,7 +62,7 @@ impl Env {
     pub fn with_scope(scope: Env) -> Env {
         Env {
             symbol_map: RefCell::new(HashMap::new()),
-            scope: Some(Box::new(scope)),
+            scope: Some(Rc::new(scope)),
         }
     }
 
