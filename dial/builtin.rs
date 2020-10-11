@@ -9,18 +9,15 @@ pub fn add(vals: &[DialVal], _: &mut Env) -> EvalResult {
 
     for val in vals.iter() {
         let num = match val {
-            DialVal::Atom(a) => match a {
-                Atom::Int(i) => *i as f64,
-                Atom::Float(f) => *f,
-                _ => return Err(EvalError::TypeError("non-numeric type specified".into())),
-            },
+            DialVal::Int(i) => *i as f64,
+            DialVal::Float(f) => *f,
             _ => return Err(EvalError::TypeError("non-numeric type specified".into())),
         };
 
         sum += num;
     }
 
-    Ok(DialVal::Atom(sum.into()))
+    Ok(sum.into())
 }
 
 pub fn sub(vals: &[DialVal], _: &mut Env) -> EvalResult {
@@ -35,7 +32,7 @@ pub fn sub(vals: &[DialVal], _: &mut Env) -> EvalResult {
         }
     }
 
-    Ok(DialVal::Atom(diff.into()))
+    Ok(diff.into())
 }
 
 pub fn mul(vals: &[DialVal], _: &mut Env) -> EvalResult {
@@ -50,14 +47,14 @@ pub fn mul(vals: &[DialVal], _: &mut Env) -> EvalResult {
         }
     }
 
-    Ok(DialVal::Atom(prod.into()))
+    Ok(prod.into())
 }
 
 // TODO implement ratio
 pub fn div(vals: &[DialVal], e: &mut Env) -> EvalResult {
     match vals.len() {
         0 => Err(EvalError::ArityError(0)),
-        1 => Ok(DialVal::Atom(vals.get(0).unwrap().try_as_number()?.into())),
+        1 => Ok(vals.get(0).unwrap().try_as_number()?.into()),
         _ => {
             let (first, rest) = vals.split_at(1);
 
@@ -70,7 +67,7 @@ pub fn div(vals: &[DialVal], e: &mut Env) -> EvalResult {
                 ));
             }
 
-            Ok(DialVal::Atom(Atom::Float(first_num / prod)))
+            Ok((first_num / prod).into())
         }
     }
 }
@@ -88,7 +85,7 @@ pub fn def_fn(vals: &[DialVal], env: &mut Env) -> EvalResult {
     .clone();
 
     match sym {
-        DialVal::Atom(Atom::Sym(s)) => {
+        DialVal::Sym(s) => {
             env.set_value(s.clone(), val.clone());
             Ok(val)
         }

@@ -9,19 +9,7 @@ use thiserror::Error;
 
 pub use env::Env;
 use parse::ParseResult;
-use sexpr::{Atom, DialVal};
-
-macro_rules! extract_atom_val {
-	($val:ident, $b:block, $($p:path)|+) => {
-		match $val {
-			DialVal::Atom(a) match a {
-				$($p(v))|+ => v,
-				_ => $b,
-			}
-			_ => $b
-		}
-	}
-}
+use sexpr::DialVal;
 
 pub type EvalResult = Result<DialVal, EvalError>;
 
@@ -43,13 +31,10 @@ pub fn read(input: String) -> ParseResult<Vec<DialVal>> {
 
 pub fn eval(val: DialVal, env: &mut Env) -> EvalResult {
     match val {
-        DialVal::Atom(a) => match a {
-            Atom::Sym(s) => env
-                .get_value(s.clone())
-                .clone()
-                .ok_or_else(|| EvalError::Undefined(format!("no such symbol {}", s).into())),
-            _ => Ok(a.clone().into()),
-        },
+        DialVal::Sym(s) => env
+            .get_value(s.clone())
+            .clone()
+            .ok_or_else(|| EvalError::Undefined(format!("no such symbol {}", s).into())),
         DialVal::List(l) => {
             if l.is_empty() {
                 Ok(DialVal::List(vec![]))
@@ -61,7 +46,7 @@ pub fn eval(val: DialVal, env: &mut Env) -> EvalResult {
                 let first = first.get(0).unwrap();
 
                 // TODO eliminate need for special rules
-                if first == &atom!(Sym, "def") {
+                if first == &DialVal::Sym("def".into()) {
                     let sym = match rest.get(0) {
                         Some(val) => val,
                         None => return Err(EvalError::ArityError(0)), // TODO better error
@@ -76,7 +61,7 @@ pub fn eval(val: DialVal, env: &mut Env) -> EvalResult {
                     let val_res = eval(val, env)?;
 
                     return match sym {
-                        DialVal::Atom(Atom::Sym(s)) => {
+                        DialVal::Sym(s) => {
                             env.set_value(s.clone(), val_res.clone());
                             Ok(val_res)
                         }
@@ -86,7 +71,7 @@ pub fn eval(val: DialVal, env: &mut Env) -> EvalResult {
                             ))
                         }
                     };
-                } else if first == &sym!("let") {
+                } else if first == &DialVal::Sym("let".into()) {
                     // TODO remove need for cloning
                     let mut scope = Env::with_scope(env.clone());
 
@@ -102,7 +87,7 @@ pub fn eval(val: DialVal, env: &mut Env) -> EvalResult {
                                 let val_res = eval(val, &mut scope);
 
                                 match sym {
-                                    DialVal::Atom(Atom::Sym(s)) => {
+                                    DialVal::Sym(s) => {
                                         scope.set_value(s, val_res?);
                                     }
                                     _ => {
@@ -131,14 +116,8 @@ pub fn eval(val: DialVal, env: &mut Env) -> EvalResult {
                     rest.iter().map(|val| eval(val.clone(), env)).collect();
 
                 match eval(first.clone(), env) {
-                    Ok(dv) => match dv {
-                        DialVal::Atom(a) => match a {
-                            Atom::Builtin { func, .. } => func(rest?.as_slice(), env),
-                            _ => Err(EvalError::TypeError(format!("{} is not a function", first))),
-                        },
-                        _ => Err(EvalError::TypeError(format!("{} is not a function", first))),
-                    },
-                    Err(e) => Err(e),
+                    Ok(DialVal::Builtin { func, .. }) => func(rest?.as_slice(), env),
+                    _ => Err(EvalError::TypeError(format!("{} is not a function", first))),
                 }
             }
         }
@@ -155,6 +134,7 @@ pub fn eval(val: DialVal, env: &mut Env) -> EvalResult {
                 }
             }
         }
+        _ => Ok(val),
     }
 }
 
@@ -189,13 +169,13 @@ mod mal_tests {
         assert_eq!(
             results,
             vec![
-                Ok(DialVal::Atom(Atom::Int(1))),
-                Ok(DialVal::Atom(Atom::Float(6.0))),
-                Ok(DialVal::Atom(Atom::Float(0.0))),
-                Ok(DialVal::Atom(Atom::Float(0.125))),
-                Ok(DialVal::Atom(Atom::Float(1.0 / 6.0))),
-                Ok(DialVal::Atom(Atom::Float(5.0))),
-                Ok(DialVal::Atom(Atom::Float(14.0))),
+                Ok(DialVal::Int(1)),
+                Ok(DialVal::Float(6.0)),
+                Ok(DialVal::Float(0.0)),
+                Ok(DialVal::Float(0.125)),
+                Ok(DialVal::Float(1.0 / 6.0)),
+                Ok(DialVal::Float(5.0)),
+                Ok(DialVal::Float(14.0)),
             ]
         )
     }
@@ -209,7 +189,7 @@ mod mal_tests {
         let input_parse = read(def_input.into()).unwrap().pop().unwrap();
         let def_result = eval(input_parse, &mut env);
 
-        assert_eq!(def_result, Ok(DialVal::Atom(Atom::Int(123))));
+        assert_eq!(def_result, Ok(DialVal::Int(123)));
     }
 
     #[test]

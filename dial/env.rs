@@ -1,4 +1,4 @@
-use super::{builtin, Atom, DialVal};
+use super::{builtin, DialVal};
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 #[derive(Clone)]
@@ -13,42 +13,42 @@ impl Default for Env {
 
         root.insert(
             "+".into(),
-            DialVal::Atom(Atom::Builtin {
+            DialVal::Builtin {
                 name: "+".into(),
                 func: builtin::add,
-            }),
+            },
         );
 
         root.insert(
             "-".into(),
-            DialVal::Atom(Atom::Builtin {
+            DialVal::Builtin {
                 name: "-".into(),
                 func: builtin::sub,
-            }),
+            },
         );
 
         root.insert(
             "*".into(),
-            DialVal::Atom(Atom::Builtin {
+            DialVal::Builtin {
                 name: "*".into(),
                 func: builtin::mul,
-            }),
+            },
         );
 
         root.insert(
             "/".into(),
-            DialVal::Atom(Atom::Builtin {
+            DialVal::Builtin {
                 name: "/".into(),
                 func: builtin::div,
-            }),
+            },
         );
 
         root.insert(
             "def".into(),
-            DialVal::Atom(Atom::Builtin {
+            DialVal::Builtin {
                 name: "def".into(),
                 func: builtin::def_fn,
-            }),
+            },
         );
 
         Env {

@@ -44,18 +44,14 @@ fn program(input: &str) -> IResult<&str, Vec<DialVal>> {
 }
 
 fn sexpr(input: &str) -> IResult<&str, DialVal> {
-    preceded(multispace0, alt((atom_sexpr, sexpr_inner, vector)))(input)
+    preceded(multispace0, alt((atom, sexpr_inner, vector)))(input)
 }
 
 fn sexpr_inner(input: &str) -> IResult<&str, DialVal> {
     inner_list('(', ')', |v| DialVal::List(v))(input)
 }
 
-fn atom_sexpr(input: &str) -> IResult<&str, DialVal> {
-    map(atom, |a| DialVal::Atom(a))(input)
-}
-
-fn atom(input: &str) -> IResult<&str, Atom> {
+fn atom(input: &str) -> IResult<&str, DialVal> {
     alt((float_atom, int_atom, str_atom, keyword_atom, sym_atom))(input)
 }
 
@@ -63,24 +59,24 @@ fn vector(input: &str) -> IResult<&str, DialVal> {
     inner_list('[', ']', |v| DialVal::Vec(v))(input)
 }
 
-fn int_atom(input: &str) -> IResult<&str, Atom> {
-    map(int, |i: i64| Atom::Int(i))(input)
+fn int_atom(input: &str) -> IResult<&str, DialVal> {
+    map(int, |i: i64| DialVal::Int(i))(input)
 }
 
-fn float_atom(input: &str) -> IResult<&str, Atom> {
-    map(float, |f: f64| Atom::Float(f))(input)
+fn float_atom(input: &str) -> IResult<&str, DialVal> {
+    map(float, |f: f64| DialVal::Float(f))(input)
 }
 
-fn str_atom(input: &str) -> IResult<&str, Atom> {
-    map(str, |s| Atom::Str(s.into()))(input)
+fn str_atom(input: &str) -> IResult<&str, DialVal> {
+    map(str, |s| DialVal::Str(s.into()))(input)
 }
 
-fn keyword_atom(input: &str) -> IResult<&str, Atom> {
-    map(keyword, |s| Atom::Keyword(s.into()))(input)
+fn keyword_atom(input: &str) -> IResult<&str, DialVal> {
+    map(keyword, |s| DialVal::Keyword(s.into()))(input)
 }
 
-fn sym_atom(input: &str) -> IResult<&str, Atom> {
-    map(sym, |s| Atom::Sym(s.into()))(input)
+fn sym_atom(input: &str) -> IResult<&str, DialVal> {
+    map(sym, |s| DialVal::Sym(s.into()))(input)
 }
 
 fn int(input: &str) -> IResult<&str, i64> {
@@ -131,7 +127,7 @@ where
         map(
             preceded(
                 multispace0,
-                separated_list(multispace1, alt((atom_sexpr, sexpr_inner, vector))),
+                separated_list(multispace1, alt((atom, sexpr_inner, vector))),
             ),
             func,
         ),
@@ -170,10 +166,7 @@ mod tests {
 
         let expected = Ok((
             "",
-            DialVal::List(vec![
-                DialVal::Atom(Atom::Int(123)),
-                DialVal::Atom(Atom::Int(456)),
-            ]),
+            DialVal::List(vec![DialVal::Int(123), DialVal::Int(456)]),
         ));
 
         assert_eq!(result, expected, "could not parse {}", input);
@@ -184,7 +177,7 @@ mod tests {
         let input = "123";
         let result = sexpr(input).unwrap();
 
-        let expected = DialVal::Atom(Atom::Int(123));
+        let expected = DialVal::Int(123);
 
         assert_eq!(result.1, expected);
     }
@@ -196,10 +189,7 @@ mod tests {
 
         let expected = Ok((
             "",
-            DialVal::List(vec![
-                DialVal::Atom(Atom::Int(123)),
-                DialVal::Atom(Atom::Int(456)),
-            ]),
+            DialVal::List(vec![DialVal::Int(123), DialVal::Int(456)]),
         ));
 
         assert_eq!(result, expected, "could not parse {}", input);
@@ -210,7 +200,7 @@ mod tests {
         let input = "( 123 )";
         let result = sexpr(input);
 
-        let expected = Ok(("", DialVal::List(vec![DialVal::Atom(Atom::Int(123))])));
+        let expected = Ok(("", DialVal::List(vec![DialVal::Int(123)])));
 
         assert_eq!(result, expected, "could not parse {}", input);
     }
@@ -218,16 +208,16 @@ mod tests {
     #[test]
     fn atom_test() {
         let inputs = vec!["12", "-34.5", r#""foo bar""#, ":foo", "foo"];
-        let res: Vec<Atom> = inputs.iter().map(|s| atom(s).unwrap().1).collect();
+        let res: Vec<DialVal> = inputs.iter().map(|s| atom(s).unwrap().1).collect();
 
         assert_eq!(
             res,
             vec![
-                Atom::Int(12),
-                Atom::Float(-34.5),
-                Atom::Str("foo bar".into()),
-                Atom::Keyword("foo".into()),
-                Atom::Sym("foo".into())
+                DialVal::Int(12),
+                DialVal::Float(-34.5),
+                DialVal::Str("foo bar".into()),
+                DialVal::Keyword("foo".into()),
+                DialVal::Sym("foo".into())
             ]
         );
 
@@ -238,14 +228,14 @@ mod tests {
     #[test]
     fn odd_symbols_parse() {
         let inputs = vec!["+", "foo/bar", "baz-quux"];
-        let res: Vec<Atom> = inputs.iter().map(|s| atom(s).unwrap().1).collect();
+        let res: Vec<DialVal> = inputs.iter().map(|s| atom(s).unwrap().1).collect();
 
         assert_eq!(
             res,
             vec![
-                Atom::Sym("+".into()),
-                Atom::Sym("foo/bar".into()),
-                Atom::Sym("baz-quux".into())
+                DialVal::Sym("+".into()),
+                DialVal::Sym("foo/bar".into()),
+                DialVal::Sym("baz-quux".into())
             ]
         );
     }
@@ -253,18 +243,25 @@ mod tests {
     #[test]
     fn int_test() {
         let inputs = vec!["-123", "4", "0"];
-        let res: Vec<Atom> = inputs.iter().map(|s| int_atom(s).unwrap().1).collect();
+        let res: Vec<DialVal> = inputs.iter().map(|s| int_atom(s).unwrap().1).collect();
 
-        assert_eq!(res, vec![Atom::Int(-123), Atom::Int(4), Atom::Int(0)]);
+        assert_eq!(
+            res,
+            vec![DialVal::Int(-123), DialVal::Int(4), DialVal::Int(0)]
+        );
     }
 
     #[test]
     fn float_test() {
         let inputs = vec!["0.123", "4.56", "-7.089"];
-        let res: Vec<Atom> = inputs.iter().map(|s| float_atom(s).unwrap().1).collect();
+        let res: Vec<DialVal> = inputs.iter().map(|s| float_atom(s).unwrap().1).collect();
         assert_eq!(
             res,
-            vec![Atom::Float(0.123), Atom::Float(4.56), Atom::Float(-7.89)]
+            vec![
+                DialVal::Float(0.123),
+                DialVal::Float(4.56),
+                DialVal::Float(-7.89)
+            ]
         );
     }
 
@@ -274,21 +271,21 @@ mod tests {
         let result = vector(input);
 
         let expected = DialVal::Vec(vec![
-            Atom::Int(1).into(),
-            Atom::Int(2).into(),
+            DialVal::Int(1).into(),
+            DialVal::Int(2).into(),
             DialVal::Vec(vec![
-                Atom::Int(3).into(),
-                Atom::Int(4).into(),
-                Atom::Float(5.5).into(),
+                DialVal::Int(3).into(),
+                DialVal::Int(4).into(),
+                DialVal::Float(5.5).into(),
             ]),
             DialVal::List(vec![
-                Atom::Sym("+".into()).into(),
-                Atom::Int(6).into(),
-                Atom::Int(7).into(),
+                DialVal::Sym("+".into()).into(),
+                DialVal::Int(6).into(),
+                DialVal::Int(7).into(),
                 DialVal::Vec(vec![
-                    Atom::Int(8).into(),
-                    Atom::Int(9).into(),
-                    Atom::Int(10).into(),
+                    DialVal::Int(8).into(),
+                    DialVal::Int(9).into(),
+                    DialVal::Int(10).into(),
                 ]),
             ]),
         ]);
