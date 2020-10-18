@@ -4,8 +4,8 @@ use anyhow::Result;
 use dial::{eval, read, Env, EvalResult};
 use rustyline::{error::ReadlineError, Editor};
 
-fn main() {
-    repl();
+fn main() -> Result<()> {
+    repl()
 }
 
 pub fn repl() -> Result<()> {

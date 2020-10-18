@@ -71,28 +71,3 @@ pub fn div(vals: &[DialVal], e: &mut Env) -> EvalResult {
         }
     }
 }
-
-pub fn def_fn(vals: &[DialVal], env: &mut Env) -> EvalResult {
-    let sym = match vals.get(0) {
-        Some(val) => val,
-        None => return Err(EvalError::ArityError(0)), // TODO better error
-    };
-
-    let val = match vals.get(1) {
-        Some(val) => val,
-        None => return Err(EvalError::ArityError(1)),
-    }
-    .clone();
-
-    match sym {
-        DialVal::Sym(s) => {
-            env.set_value(s.clone(), val.clone());
-            Ok(val)
-        }
-        _ => {
-            return Err(EvalError::InvalidArgumentError(
-                "'def' requires binding to symbol".into(),
-            ))
-        }
-    }
-}

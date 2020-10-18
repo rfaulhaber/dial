@@ -43,14 +43,6 @@ impl Default for Env {
             },
         );
 
-        root.insert(
-            "def".into(),
-            DialVal::Builtin {
-                name: "def".into(),
-                func: builtin::def_fn,
-            },
-        );
-
         Env {
             symbol_map: RefCell::new(root),
             scope: None,
