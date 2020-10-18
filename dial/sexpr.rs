@@ -3,6 +3,7 @@ use super::{EvalError, EvalResult};
 use std::cmp::PartialEq;
 use std::fmt::{self, Debug, Display};
 
+// TODO make into iterator
 #[derive(Clone)]
 pub enum DialVal {
     Nil,
@@ -169,6 +170,18 @@ impl From<bool> for DialVal {
     }
 }
 
+pub struct DialValIter {
+    items: Vec<DialVal>,
+}
+
+impl Iterator for DialValIter {
+    type Item = DialVal;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.items.pop()
+    }
+}
+
 impl DialVal {
     pub fn is_number(&self) -> bool {
         matches!(self, DialVal::Int(_) | DialVal::Float(_))
@@ -187,5 +200,47 @@ impl DialVal {
                 self
             ))),
         }
+    }
+
+    pub fn into_iter(self) -> DialValIter {
+        match self {
+            DialVal::List(l) => {
+                let mut items = l.clone();
+                items.reverse();
+                DialValIter { items }
+            }
+            i => DialValIter { items: vec![i] },
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn iter_list_works() {
+        let val = DialVal::List(vec![
+            DialVal::Sym("+".into()),
+            DialVal::Int(1),
+            DialVal::Int(2),
+        ]);
+
+        let mut iter = val.into_iter();
+
+        assert_eq!(Some(DialVal::Sym("+".into())), iter.next());
+        assert_eq!(Some(DialVal::Int(1)), iter.next());
+        assert_eq!(Some(DialVal::Int(2)), iter.next());
+        assert_eq!(None, iter.next());
+    }
+
+    #[test]
+    fn iter_single_item_works() {
+        let val = DialVal::Sym("+".into());
+
+        let mut iter = val.into_iter();
+
+        assert_eq!(Some(DialVal::Sym("+".into())), iter.next());
+        assert_eq!(None, iter.next());
     }
 }
