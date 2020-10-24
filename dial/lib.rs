@@ -45,79 +45,90 @@ pub fn eval(val: DialVal, env: &mut Env) -> EvalResult {
                 // TODO error handling
                 let first = first.get(0).unwrap();
 
-                // TODO eliminate need for special rules
-                if first == &DialVal::Sym("def".into()) {
-                    let sym = match rest.get(0) {
-                        Some(val) => val,
-                        None => return Err(EvalError::ArityError(0)), // TODO better error
-                    };
+                match first {
+                    v if v == &DialVal::Sym("def".into()) => {
+                        let sym = match rest.get(0) {
+                            Some(val) => val,
+                            None => return Err(EvalError::ArityError(0)), // TODO better error
+                        };
 
-                    let val = match rest.get(1) {
-                        Some(val) => val,
-                        None => return Err(EvalError::ArityError(1)),
+                        let val = match rest.get(1) {
+                            Some(val) => val,
+                            None => return Err(EvalError::ArityError(1)),
+                        }
+                        .clone();
+
+                        let val_res = eval(val, env)?;
+
+                        return match sym {
+                            DialVal::Sym(s) => {
+                                env.set_value(s.clone(), val_res.clone());
+                                Ok(val_res)
+                            }
+                            _ => {
+                                return Err(EvalError::InvalidArgumentError(
+                                    "'def' requires binding to symbol".into(),
+                                ))
+                            }
+                        };
                     }
-                    .clone();
+                    v if v == &DialVal::Sym("let".into()) => {
+                        // TODO remove need for cloning
+                        let mut scope = Env::with_scope(env.clone());
 
-                    let val_res = eval(val, env)?;
+                        let (list_sl, inner) = rest.split_at(1);
 
-                    return match sym {
-                        DialVal::Sym(s) => {
-                            env.set_value(s.clone(), val_res.clone());
-                            Ok(val_res)
-                        }
-                        _ => {
-                            return Err(EvalError::InvalidArgumentError(
-                                "'def' requires binding to symbol".into(),
-                            ))
-                        }
-                    };
-                } else if first == &DialVal::Sym("let".into()) {
-                    // TODO remove need for cloning
-                    let mut scope = Env::with_scope(env.clone());
+                        // TODO error handling
+                        // TODO stop with all the cloning
+                        return match list_sl.get(0).unwrap().clone() {
+                            DialVal::List(l) => {
+                                for pair in l.into_iter().collect::<Vec<_>>().chunks(2) {
+                                    let sym = pair.get(0).unwrap().clone();
+                                    let val = pair.get(1).unwrap().clone();
+                                    let val_res = eval(val, &mut scope);
 
-                    let (list_sl, inner) = rest.split_at(1);
-
-                    // TODO error handling
-                    // TODO stop with all the cloning
-                    return match list_sl.get(0).unwrap().clone() {
-                        DialVal::List(l) => {
-                            for pair in l.into_iter().collect::<Vec<_>>().chunks(2) {
-                                let sym = pair.get(0).unwrap().clone();
-                                let val = pair.get(1).unwrap().clone();
-                                let val_res = eval(val, &mut scope);
-
-                                match sym {
-                                    DialVal::Sym(s) => {
-                                        scope.set_value(s, val_res?);
-                                    }
-                                    _ => {
-                                        return Err(EvalError::TypeError(format!(
-                                            "expected symbol in let binding, found {}",
-                                            sym
-                                        )))
+                                    match sym {
+                                        DialVal::Sym(s) => {
+                                            scope.set_value(s, val_res?);
+                                        }
+                                        _ => {
+                                            return Err(EvalError::TypeError(format!(
+                                                "expected symbol in let binding, found {}",
+                                                sym
+                                            )))
+                                        }
                                     }
                                 }
+
+                                inner
+                                    .iter()
+                                    // TODO stop cloning
+                                    .map(|val| eval(val.clone(), &mut scope))
+                                    .collect::<Result<Vec<DialVal>, EvalError>>()
+                                    .map(|v| v.get(0).unwrap().clone())
                             }
+                            _ => Err(EvalError::InvalidArgumentError(format!(
+                                "let binding expects a list of associations"
+                            ))),
+                        };
+                    }
+                    v if v == &DialVal::Sym("if".into()) => {
+                        let cond = match rest.get(0) {
+                            Some(v) => v,
+                            None => return Err(EvalError::ArityError(3)),
+                        };
+                    }
+                    v if v == &DialVal::Sym("fn".into()) => todo!("implement functions"),
+                    v if v == &DialVal::Sym("do".into()) => todo!("implement do"),
+                    _ => {
+                        let rest: Result<Vec<DialVal>, EvalError> =
+                            rest.iter().map(|val| eval(val.clone(), env)).collect();
 
-                            inner
-                                .iter()
-                                // TODO stop cloning
-                                .map(|val| eval(val.clone(), &mut scope))
-                                .collect::<Result<Vec<DialVal>, EvalError>>()
-                                .map(|v| v.get(0).unwrap().clone())
+                        match eval(first.clone(), env) {
+                            Ok(DialVal::Builtin { func, .. }) => func(rest?.as_slice(), env),
+                            _ => Err(EvalError::TypeError(format!("{} is not a function", first))),
                         }
-                        _ => Err(EvalError::InvalidArgumentError(format!(
-                            "let binding expects a list of associations"
-                        ))),
-                    };
-                }
-
-                let rest: Result<Vec<DialVal>, EvalError> =
-                    rest.iter().map(|val| eval(val.clone(), env)).collect();
-
-                match eval(first.clone(), env) {
-                    Ok(DialVal::Builtin { func, .. }) => func(rest?.as_slice(), env),
-                    _ => Err(EvalError::TypeError(format!("{} is not a function", first))),
+                    }
                 }
             }
         }

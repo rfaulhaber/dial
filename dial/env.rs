@@ -51,7 +51,7 @@ impl Default for Env {
 }
 
 impl Env {
-    pub fn with_scope(scope: Env) -> Env {
+    pub fn with_scope(scope: Env) -> Self {
         Env {
             symbol_map: RefCell::new(HashMap::new()),
             scope: Some(Rc::new(scope)),
