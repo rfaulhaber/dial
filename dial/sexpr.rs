@@ -3,7 +3,6 @@ use super::{EvalError, EvalResult};
 use std::cmp::PartialEq;
 use std::fmt::{self, Debug, Display};
 
-// TODO make into iterator
 #[derive(Clone)]
 pub enum DialVal {
     Nil,

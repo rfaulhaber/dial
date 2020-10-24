@@ -2,9 +2,8 @@ use super::sexpr::*;
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_until, take_while},
-    character::complete::{anychar, char, digit1, multispace0, multispace1},
+    character::complete::{alpha1, anychar, char, digit1, multispace0, multispace1},
     combinator::{all_consuming, cut, map, map_res, recognize, verify},
-    error::ParseError as NomParseError,
     multi::{many1, separated_list},
     sequence::{delimited, pair, preceded, tuple},
     IResult,
@@ -52,11 +51,33 @@ fn sexpr_inner(input: &str) -> IResult<&str, DialVal> {
 }
 
 fn atom(input: &str) -> IResult<&str, DialVal> {
-    alt((float_atom, int_atom, str_atom, keyword_atom, sym_atom))(input)
+    alt((
+        float_atom,
+        int_atom,
+        str_atom,
+        bool_atom,
+        keyword_atom,
+        sym_atom,
+    ))(input)
 }
 
 fn vector(input: &str) -> IResult<&str, DialVal> {
     inner_list('[', ']', |v| DialVal::Vec(v))(input)
+}
+
+fn hash_map(input: &str) -> IResult<&str, DialVal> {
+    delimited(
+        char('{'),
+        map(
+            preceded(multispace0, separated_list(multispace1, sexpr_contents)),
+            func,
+        ),
+        preceded(multispace0, cut(char(close_delim))),
+    )
+}
+
+fn sexpr_contents(input: &str) -> IResult<&str, DialVal> {
+    alt((atom, sexpr_inner, vector, hash_map))(input)
 }
 
 fn int_atom(input: &str) -> IResult<&str, DialVal> {
@@ -77,6 +98,16 @@ fn keyword_atom(input: &str) -> IResult<&str, DialVal> {
 
 fn sym_atom(input: &str) -> IResult<&str, DialVal> {
     map(sym, |s| DialVal::Sym(s.into()))(input)
+}
+
+fn bool_atom(input: &str) -> IResult<&str, DialVal> {
+    map(bool, |s| {
+        DialVal::Bool(match s {
+            "true" => true,
+            "false" => false,
+            _ => unreachable!(),
+        })
+    })(input)
 }
 
 fn int(input: &str) -> IResult<&str, i64> {
@@ -111,6 +142,10 @@ fn sym(input: &str) -> IResult<&str, &str> {
         verify(anychar, valid_first_sym_char),
         take_while(valid_sym_char),
     ))(input)
+}
+
+fn bool(input: &str) -> IResult<&str, &str> {
+    recognize(verify(alpha1, |s: &str| s == "true" || s == "false"))(input)
 }
 
 // TODO make return function
@@ -291,5 +326,25 @@ mod tests {
         ]);
 
         assert_eq!(result, Ok(("", expected)));
+    }
+
+    #[test]
+    fn bool_test() {
+        let input = "true false truth falsy trueVal falseVal";
+        let result: Vec<DialVal> = input
+            .split(" ")
+            .map(|w| parse_sexpr(w.into()).unwrap())
+            .collect();
+
+        let expected = vec![
+            DialVal::Bool(true),
+            DialVal::Bool(false),
+            DialVal::Sym("truth".into()),
+            DialVal::Sym("falsy".into()),
+            DialVal::Sym("trueVal".into()),
+            DialVal::Sym("falseVal".into()),
+        ];
+
+        assert_eq!(result, expected);
     }
 }
