@@ -13,6 +13,8 @@ use sexpr::DialVal;
 
 pub type EvalResult = Result<DialVal, EvalError>;
 
+// TODO "too many arguments" for macro
+// TODO "too few arguments" for macro
 #[derive(Error, Debug, PartialEq)]
 pub enum EvalError {
     #[error("undefined value: {0}")]
@@ -113,10 +115,35 @@ pub fn eval(val: DialVal, env: &mut Env) -> EvalResult {
                         };
                     }
                     v if v == &DialVal::Sym("if".into()) => {
-                        let cond = match rest.get(0) {
+                        let mut rest = Vec::from(rest);
+                        rest.reverse();
+
+                        let cond = match rest.pop() {
                             Some(v) => v,
+                            None => return Err(EvalError::ArityError(1)),
+                        };
+
+                        let cond_result = eval(cond, env)?;
+
+                        let if_true = match rest.pop() {
+                            Some(e) => e,
+                            None => return Err(EvalError::ArityError(2)),
+                        };
+
+                        // TODO assert this is last item
+                        let if_false = match rest.pop() {
+                            Some(e) => e,
                             None => return Err(EvalError::ArityError(3)),
                         };
+
+                        if rest.len() > 0 {
+                            return Err(EvalError::ArityError(4));
+                        }
+
+                        match cond_result {
+                            DialVal::Nil | DialVal::Bool(false) => eval(if_false, env),
+                            _ => eval(if_true, env),
+                        }
                     }
                     v if v == &DialVal::Sym("fn".into()) => todo!("implement functions"),
                     v if v == &DialVal::Sym("do".into()) => todo!("implement do"),
@@ -232,5 +259,32 @@ mod mal_tests {
                 Err(EvalError::Undefined("no such symbol c".into()))
             ]
         )
+    }
+
+    #[test]
+    fn step_4_if() {
+        let inputs = vec![
+            r#"(if true 1 2)"#,
+            r#"(if false 1 2)"#,
+            "(if)",
+            "(if true foo bar baz)",
+        ];
+
+        let mut env = Env::default();
+
+        let results: Vec<EvalResult> = inputs
+            .iter()
+            .map(|input| eval(read(input.to_string()).unwrap().pop().unwrap(), &mut env))
+            .collect();
+
+        assert_eq!(
+            results,
+            vec![
+                Ok(1.into()),
+                Ok(2.into()),
+                Err(EvalError::ArityError(1)),
+                Err(EvalError::ArityError(4)),
+            ]
+        );
     }
 }

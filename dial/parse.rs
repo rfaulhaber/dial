@@ -56,6 +56,7 @@ fn atom(input: &str) -> IResult<&str, DialVal> {
         int_atom,
         str_atom,
         bool_atom,
+        nil_atom,
         keyword_atom,
         sym_atom,
     ))(input)
@@ -99,6 +100,10 @@ fn bool_atom(input: &str) -> IResult<&str, DialVal> {
     })(input)
 }
 
+fn nil_atom(input: &str) -> IResult<&str, DialVal> {
+    map(nil, |_| DialVal::Nil)(input)
+}
+
 fn int(input: &str) -> IResult<&str, i64> {
     alt((
         map_res(digit1, |digit_str: &str| digit_str.parse::<i64>()),
@@ -135,6 +140,10 @@ fn sym(input: &str) -> IResult<&str, &str> {
 
 fn bool(input: &str) -> IResult<&str, &str> {
     recognize(verify(alpha1, |s: &str| s == "true" || s == "false"))(input)
+}
+
+fn nil(input: &str) -> IResult<&str, &str> {
+    recognize(verify(alpha1, |s: &str| s == "nil"))(input)
 }
 
 // TODO make return function
@@ -333,6 +342,20 @@ mod tests {
             DialVal::Sym("trueVal".into()),
             DialVal::Sym("falseVal".into()),
         ];
+
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn nil_test() {
+        let input = "nil nill";
+
+        let result: Vec<DialVal> = input
+            .split(" ")
+            .map(|w| parse_sexpr(w.into()).unwrap())
+            .collect();
+
+        let expected = vec![DialVal::Nil, DialVal::Sym("nill".into())];
 
         assert_eq!(result, expected);
     }
