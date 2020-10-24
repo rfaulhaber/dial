@@ -65,19 +65,8 @@ fn vector(input: &str) -> IResult<&str, DialVal> {
     inner_list('[', ']', |v| DialVal::Vec(v))(input)
 }
 
-fn hash_map(input: &str) -> IResult<&str, DialVal> {
-    delimited(
-        char('{'),
-        map(
-            preceded(multispace0, separated_list(multispace1, sexpr_contents)),
-            func,
-        ),
-        preceded(multispace0, cut(char(close_delim))),
-    )
-}
-
 fn sexpr_contents(input: &str) -> IResult<&str, DialVal> {
-    alt((atom, sexpr_inner, vector, hash_map))(input)
+    alt((atom, sexpr_inner, vector))(input)
 }
 
 fn int_atom(input: &str) -> IResult<&str, DialVal> {

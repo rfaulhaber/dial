@@ -1,5 +1,5 @@
 use super::builtin::BuiltinFunc;
-use super::{EvalError, EvalResult};
+use super::EvalError;
 use std::cmp::PartialEq;
 use std::fmt::{self, Debug, Display};
 
@@ -18,7 +18,6 @@ pub enum DialVal {
     // collections
     List(Vec<DialVal>),
     Vec(Vec<DialVal>),
-    // TODO hashmap
 }
 
 impl Display for DialVal {
