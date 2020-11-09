@@ -146,7 +146,15 @@ pub fn eval(val: DialVal, env: &mut Env) -> EvalResult {
                         }
                     }
                     v if v == &DialVal::Sym("fn".into()) => todo!("implement functions"),
-                    v if v == &DialVal::Sym("do".into()) => todo!("implement do"),
+                    v if v == &DialVal::Sym("do".into()) => {
+                        let rest: Result<Vec<DialVal>, EvalError> =
+                            rest.iter().map(|val| eval(val.clone(), env)).collect();
+
+                        match rest {
+                            Ok(res) => Ok(res.last().unwrap().clone()),
+                            Err(e) => Err(e),
+                        }
+                    }
                     _ => {
                         let rest: Result<Vec<DialVal>, EvalError> =
                             rest.iter().map(|val| eval(val.clone(), env)).collect();
@@ -285,6 +293,27 @@ mod mal_tests {
                 Err(EvalError::ArityError(1)),
                 Err(EvalError::ArityError(4)),
             ]
+        );
+    }
+
+    #[test]
+    fn step_4_do() {
+        let inputs = vec![
+            "(do 1 2 3 4)",
+            "(do (+ 1 2) (+ 3 4))",
+            "(do (def foo 123) (+ foo 123))",
+        ];
+
+        let mut env = Env::default();
+
+        let results: Vec<EvalResult> = inputs
+            .iter()
+            .map(|input| eval(read(input.to_string()).unwrap().pop().unwrap(), &mut env))
+            .collect();
+
+        assert_eq!(
+            results,
+            vec![Ok(4.into()), Ok(7.0.into()), Ok(246.0.into())]
         );
     }
 }
