@@ -75,4 +75,11 @@ impl Env {
     pub fn set_value(&self, sym: String, val: DialVal) {
         self.symbol_map.borrow_mut().insert(sym, val);
     }
+
+    // helper for function creation
+    pub fn bind(&self, symbols: Vec<String>, vals: Vec<DialVal>) {
+        for (sym, val) in symbols.iter().zip(vals) {
+            self.set_value(*sym, val);
+        }
+    }
 }

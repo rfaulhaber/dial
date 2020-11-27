@@ -145,7 +145,57 @@ pub fn eval(val: DialVal, env: &mut Env) -> EvalResult {
                             _ => eval(if_true, env),
                         }
                     }
-                    v if v == &DialVal::Sym("fn".into()) => todo!("implement functions"),
+                    v if v == &DialVal::Sym("fn".into()) => {
+                        let rest: Result<Vec<DialVal>, EvalError> =
+                            rest.iter().map(|val| eval(val.clone(), env)).collect();
+
+                        match rest {
+                            Ok(vals) => {
+                                let fn_args = match vals.get(0) {
+                                    Some(args) => match args {
+                                        DialVal::List(l) => {
+                                            let mut args_sym = vec![];
+
+                                            for arg in l {
+                                                match arg {
+                                                    DialVal::Sym(s) => args_sym.push(s.clone()),
+                                                    _ => {
+                                                        return Err(EvalError::TypeError(
+                                                            "symbol".into(),
+                                                        ))
+                                                    }
+                                                }
+                                            }
+
+                                            args_sym
+                                        }
+                                        _ => return Err(EvalError::TypeError("list".into())),
+                                    },
+                                    None => return Err(EvalError::ArityError(3)),
+                                };
+
+                                let fn_body = match vals.get(1) {
+                                    Some(body) => body.clone(),
+                                    None => return Err(EvalError::ArityError(3)),
+                                };
+
+                                fn fn_eval(args: Vec<DialVal>, env: &mut Env) -> EvalResult {
+                                    let inner_env = Env::with_scope(env.clone());
+
+                                    inner_env.bind(fn_args, args);
+
+                                    eval(fn_body, &mut inner_env)
+                                }
+
+                                Ok(DialVal::Lambda {
+                                    params: fn_args,
+                                    body: Box::new(fn_body),
+                                    eval: fn_eval,
+                                })
+                            }
+                            Err(e) => Err(e),
+                        }
+                    }
                     v if v == &DialVal::Sym("do".into()) => {
                         let rest: Result<Vec<DialVal>, EvalError> =
                             rest.iter().map(|val| eval(val.clone(), env)).collect();
@@ -161,6 +211,7 @@ pub fn eval(val: DialVal, env: &mut Env) -> EvalResult {
 
                         match eval(first.clone(), env) {
                             Ok(DialVal::Builtin { func, .. }) => func(rest?.as_slice(), env),
+                            Ok(DialVal::Lambda { eval: fn_eval, .. }) => fn_eval(rest?, env),
                             _ => Err(EvalError::TypeError(format!("{} is not a function", first))),
                         }
                     }

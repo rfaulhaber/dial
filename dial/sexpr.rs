@@ -1,5 +1,5 @@
 use super::builtin::BuiltinFunc;
-use super::EvalError;
+use super::{Env, EvalError, EvalResult};
 use std::cmp::PartialEq;
 use std::fmt::{self, Debug, Display};
 
@@ -12,12 +12,18 @@ pub enum DialVal {
     Str(String),
     Sym(String),
     Keyword(String),
-    // TODO add both Builtin (Rust code) and Lambda (user defined) variants
     Builtin { name: String, func: BuiltinFunc },
+    Lambda(DialLambda),
 
     // collections
     List(Vec<DialVal>),
     Vec(Vec<DialVal>),
+}
+
+pub struct DialLambda {
+    params: Vec<String>,
+    body: Box<DialVal>,
+    eval: Box<dyn FnMut(Vec<DialVal>, &mut Env) -> EvalResult>,
 }
 
 impl Display for DialVal {
@@ -57,6 +63,7 @@ impl Display for DialVal {
 
                 write!(f, "]")
             }
+            DialVal::Lambda { .. } => write!(f, "#<function>"),
         }
     }
 }
@@ -98,6 +105,7 @@ impl Debug for DialVal {
 
                 write!(f, "]")
             }
+            DialVal::Lambda { .. } => write!(f, "#<function>"),
         }
     }
 }
