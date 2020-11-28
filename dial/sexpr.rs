@@ -12,18 +12,18 @@ pub enum DialVal {
     Str(String),
     Sym(String),
     Keyword(String),
-    Builtin { name: String, func: BuiltinFunc },
-    Lambda(DialLambda),
+    Builtin {
+        name: String,
+        func: BuiltinFunc,
+    },
+    Lambda {
+        params: Vec<String>,
+        body: Box<DialVal>,
+    },
 
     // collections
     List(Vec<DialVal>),
     Vec(Vec<DialVal>),
-}
-
-pub struct DialLambda {
-    params: Vec<String>,
-    body: Box<DialVal>,
-    eval: Box<dyn FnMut(Vec<DialVal>, &mut Env) -> EvalResult>,
 }
 
 impl Display for DialVal {

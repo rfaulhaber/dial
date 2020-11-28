@@ -79,7 +79,7 @@ impl Env {
     // helper for function creation
     pub fn bind(&self, symbols: Vec<String>, vals: Vec<DialVal>) {
         for (sym, val) in symbols.iter().zip(vals) {
-            self.set_value(*sym, val);
+            self.set_value(sym.clone(), val);
         }
     }
 }
