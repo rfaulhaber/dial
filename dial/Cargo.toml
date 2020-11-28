@@ -11,7 +11,7 @@ path = "lib.rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-nom = "5.1.2"
+nom = "6.0.1"
 thiserror = "1.0"
 anyhow = "1.0"
 

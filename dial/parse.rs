@@ -4,7 +4,7 @@ use nom::{
     bytes::complete::{tag, take_until, take_while},
     character::complete::{alpha1, anychar, char, digit1, multispace0, multispace1},
     combinator::{all_consuming, cut, map, map_res, recognize, verify},
-    multi::{many1, separated_list},
+    multi::{many1, separated_list0},
     sequence::{delimited, pair, preceded, tuple},
     IResult,
 };
@@ -151,16 +151,16 @@ fn inner_list<'a, F>(
     open_delim: char,
     close_delim: char,
     func: F,
-) -> impl Fn(&'a str) -> IResult<&'a str, DialVal>
+) -> impl FnMut(&'a str) -> IResult<&'a str, DialVal>
 where
-    F: Fn(Vec<DialVal>) -> DialVal,
+    F: FnMut(Vec<DialVal>) -> DialVal,
 {
     delimited(
         char(open_delim),
         map(
             preceded(
                 multispace0,
-                separated_list(multispace1, alt((atom, sexpr_inner, vector))),
+                separated_list0(multispace1, alt((atom, sexpr_inner, vector))),
             ),
             func,
         ),
