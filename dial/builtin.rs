@@ -71,3 +71,38 @@ pub fn div(vals: &[DialVal], e: &mut Env) -> EvalResult {
         }
     }
 }
+
+pub fn list(vals: &[DialVal], _e: &mut Env) -> EvalResult {
+    Ok(DialVal::List(Vec::from(vals)))
+}
+
+pub fn is_list(vals: &[DialVal], _e: &mut Env) -> EvalResult {
+    match vals.first() {
+        Some(&DialVal::List(_)) => Ok(true.into()),
+        _ => Ok(false.into()),
+    }
+}
+
+pub fn is_empty(vals: &[DialVal], _e: &mut Env) -> EvalResult {
+    match vals.first() {
+        Some(l) => match l {
+            DialVal::List(l) => Ok((l.len() == 0).into()),
+            _ => Err(EvalError::InvalidArgumentError(format!(
+                "empty? only valid on lists"
+            ))),
+        },
+        None => Err(EvalError::ArityError(1)),
+    }
+}
+
+pub fn count(vals: &[DialVal], _e: &mut Env) -> EvalResult {
+    match vals.first() {
+        Some(l) => match l {
+            DialVal::List(l) => Ok((l.len() as i64).into()),
+            _ => Err(EvalError::InvalidArgumentError(format!(
+                "count only valid on lists"
+            ))),
+        },
+        None => Err(EvalError::ArityError(1)),
+    }
+}

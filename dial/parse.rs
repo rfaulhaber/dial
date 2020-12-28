@@ -124,7 +124,11 @@ fn float(input: &str) -> IResult<&str, f64> {
 }
 
 fn str(input: &str) -> IResult<&str, &str> {
-    preceded(tag("\""), take_until("\""))(input)
+    let (rem, _) = tag("\"")(input)?;
+    let (rem, matching) = take_until("\"")(rem)?;
+    let (rem, _) = tag("\"")(rem)?;
+
+    Ok((rem, matching))
 }
 
 fn keyword(input: &str) -> IResult<&str, &str> {
@@ -240,7 +244,7 @@ mod tests {
 
     #[test]
     fn atom_test() {
-        let inputs = vec!["12", "-34.5", r#""foo bar""#, ":foo", "foo"];
+        let inputs = vec!["12", "-34.5", "\"foo bar\"", ":foo", "foo"];
         let res: Vec<DialVal> = inputs.iter().map(|s| atom(s).unwrap().1).collect();
 
         assert_eq!(

@@ -34,7 +34,7 @@ impl Display for DialVal {
             DialVal::Int(v) => write!(f, "{}", v),
             DialVal::Float(v) => write!(f, "{}", v),
             DialVal::Sym(v) => write!(f, "{}", v),
-            DialVal::Str(v) => write!(f, r#"{}"#, v),
+            DialVal::Str(v) => write!(f, "\"{}\"", v),
             DialVal::Keyword(v) => write!(f, ":{}", v),
             DialVal::Builtin { name, .. } => write!(f, "#builtin: {}", name),
             DialVal::List(l) => {

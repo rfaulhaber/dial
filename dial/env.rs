@@ -43,6 +43,38 @@ impl Default for Env {
             },
         );
 
+        root.insert(
+            "list".into(),
+            DialVal::Builtin {
+                name: "list".into(),
+                func: builtin::list,
+            },
+        );
+
+        root.insert(
+            "list?".into(),
+            DialVal::Builtin {
+                name: "list?".into(),
+                func: builtin::is_list,
+            },
+        );
+
+        root.insert(
+            "empty?".into(),
+            DialVal::Builtin {
+                name: "empty?".into(),
+                func: builtin::is_empty,
+            },
+        );
+
+        root.insert(
+            "count".into(),
+            DialVal::Builtin {
+                name: "count".into(),
+                func: builtin::count,
+            },
+        );
+
         Env {
             symbol_map: RefCell::new(root),
             scope: None,

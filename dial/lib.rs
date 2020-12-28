@@ -376,4 +376,63 @@ mod mal_tests {
 
         assert_eq!(results, vec![Ok(7.into()), Ok(11.0.into()), Ok(5.0.into())]);
     }
+
+    #[test]
+    fn step_4_list_fn() {
+        let inputs = vec!["(list 1 2 3)"];
+
+        let mut env = Env::default();
+
+        let results: Vec<EvalResult> = inputs
+            .iter()
+            .map(|input| eval(read(input.to_string()).unwrap().pop().unwrap(), &mut env))
+            .collect();
+
+        assert_eq!(
+            results,
+            vec![Ok(DialVal::List(vec![1.into(), 2.into(), 3.into()]))]
+        );
+    }
+
+    #[test]
+    fn step_4_is_list_fn() {
+        let inputs = vec!["(list? (list 1 2 3))", "(list? 1)"];
+
+        let mut env = Env::default();
+
+        let results: Vec<EvalResult> = inputs
+            .iter()
+            .map(|input| eval(read(input.to_string()).unwrap().pop().unwrap(), &mut env))
+            .collect();
+
+        assert_eq!(results, vec![Ok(true.into()), Ok(false.into())]);
+    }
+
+    #[test]
+    fn step_4_is_empty_fn() {
+        let inputs = vec!["(empty? (list))", "(empty? (list 1 2 3))"];
+
+        let mut env = Env::default();
+
+        let results: Vec<EvalResult> = inputs
+            .iter()
+            .map(|input| eval(read(input.to_string()).unwrap().pop().unwrap(), &mut env))
+            .collect();
+
+        assert_eq!(results, vec![Ok(true.into()), Ok(false.into())]);
+    }
+
+    #[test]
+    fn step_4_count_fn() {
+        let inputs = vec!["(count (list 1 2 3))", "(count (list))"];
+
+        let mut env = Env::default();
+
+        let results: Vec<EvalResult> = inputs
+            .iter()
+            .map(|input| eval(read(input.to_string()).unwrap().pop().unwrap(), &mut env))
+            .collect();
+
+        assert_eq!(results, vec![Ok(3.into()), Ok(0.into())]);
+    }
 }
