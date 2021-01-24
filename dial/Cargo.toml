@@ -14,6 +14,7 @@ path = "lib.rs"
 nom = "6.0.1"
 thiserror = "1.0"
 anyhow = "1.0"
+num = "0.3"
 
 [dev-dependencies]
 pretty_assertions = "0.6.1"

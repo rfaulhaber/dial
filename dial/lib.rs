@@ -32,6 +32,17 @@ pub fn read(input: String) -> ParseResult<Vec<DialVal>> {
 }
 
 pub fn eval(val: DialVal, env: &mut Env) -> EvalResult {
+    // match val {
+    //     DialVal::List(l) => {
+    //         if l.is_empty() {
+    //             Ok(DialVal::List(vec![]))
+    //         } else {
+    //             // we should have at least one item
+    //             let func = l.first().unwrap();
+    //         }
+    //     }
+    //     _ => eval_form(val, env)
+    // }
     match val {
         DialVal::Sym(s) => env
             .get_value(s.clone())
@@ -224,6 +235,10 @@ pub fn eval(val: DialVal, env: &mut Env) -> EvalResult {
         }
         _ => Ok(val),
     }
+}
+
+fn eval_form(val: DialVal, env: &mut Env) -> EvalResult {
+    todo!();
 }
 
 pub fn print(val: EvalResult) -> String {

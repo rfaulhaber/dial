@@ -1,5 +1,7 @@
 use super::builtin::BuiltinFunc;
-use super::{Env, EvalError, EvalResult};
+use super::EvalError;
+use num::rational::Rational64;
+use num::Num;
 use std::cmp::PartialEq;
 use std::fmt::{self, Debug, Display};
 
@@ -12,6 +14,7 @@ pub enum DialVal {
     Str(String),
     Sym(String),
     Keyword(String),
+    Ratio(Rational64),
     Builtin {
         name: String,
         func: BuiltinFunc,
@@ -36,6 +39,7 @@ impl Display for DialVal {
             DialVal::Sym(v) => write!(f, "{}", v),
             DialVal::Str(v) => write!(f, "\"{}\"", v),
             DialVal::Keyword(v) => write!(f, ":{}", v),
+            DialVal::Ratio(v) => write!(f, "{}/{}", v.numer(), v.denom()),
             DialVal::Builtin { name, .. } => write!(f, "#builtin: {}", name),
             DialVal::List(l) => {
                 write!(f, "(")?;
@@ -78,6 +82,7 @@ impl Debug for DialVal {
             DialVal::Sym(v) => write!(f, "sym({:?})", v),
             DialVal::Str(v) => write!(f, "str(\"{:?}\")", v),
             DialVal::Keyword(v) => write!(f, "kw(:{:?})", v),
+            DialVal::Ratio(v) => write!(f, "ratio({}/{})", v.numer(), v.denom()),
             DialVal::Builtin { name, .. } => write!(f, "#builtin: {:?}", name),
             DialVal::List(l) => {
                 write!(f, "(")?;
@@ -151,7 +156,8 @@ impl PartialEq for DialVal {
                 DialVal::Float,
                 DialVal::Sym,
                 DialVal::Str,
-                DialVal::Keyword
+                DialVal::Keyword,
+                DialVal::Ratio
             ),
             _ => false,
         }

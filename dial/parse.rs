@@ -5,11 +5,12 @@ use nom::{
     character::complete::{alpha1, anychar, char, digit1, multispace0, multispace1},
     combinator::{all_consuming, cut, map, map_res, recognize, verify},
     multi::{many1, separated_list0},
-    sequence::{delimited, pair, preceded, tuple},
+    sequence::{delimited, pair, preceded, separated_pair, tuple},
     IResult,
 };
 
 use anyhow::Result;
+use num::rational::Rational64;
 use thiserror::Error;
 
 pub type ParseResult<T> = Result<T, ParseError>;
@@ -52,6 +53,7 @@ fn sexpr_inner(input: &str) -> IResult<&str, DialVal> {
 
 fn atom(input: &str) -> IResult<&str, DialVal> {
     alt((
+        ratio_atom,
         float_atom,
         int_atom,
         str_atom,
@@ -104,6 +106,10 @@ fn nil_atom(input: &str) -> IResult<&str, DialVal> {
     map(nil, |_| DialVal::Nil)(input)
 }
 
+fn ratio_atom(input: &str) -> IResult<&str, DialVal> {
+    map(ratio, |(n, d)| DialVal::Ratio(Rational64::new(n, d)))(input)
+}
+
 fn int(input: &str) -> IResult<&str, i64> {
     alt((
         map_res(digit1, |digit_str: &str| digit_str.parse::<i64>()),
@@ -120,6 +126,14 @@ fn float(input: &str) -> IResult<&str, f64> {
             let s = format!("{}.{}", head, tail);
             s.parse::<f64>()
         },
+    )(input)
+}
+
+fn ratio(input: &str) -> IResult<&str, (i64, i64)> {
+    separated_pair(
+        int,
+        preceded(multispace0, tag("/")),
+        preceded(multispace0, int),
     )(input)
 }
 
@@ -360,6 +374,26 @@ mod tests {
             .collect();
 
         let expected = vec![DialVal::Nil, DialVal::Sym("nill".into())];
+
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn ratio_test_no_whitespace() {
+        let input = "3/5";
+        let result = parse_sexpr(input.into()).unwrap();
+
+        let expected = DialVal::Ratio(Rational64::new(3, 5));
+
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn ratio_test_whitespace() {
+        let input = "3 / 5";
+        let result = parse_sexpr(input.into()).unwrap();
+
+        let expected = DialVal::Ratio(Rational64::new(3, 5));
 
         assert_eq!(result, expected);
     }

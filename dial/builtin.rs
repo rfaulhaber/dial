@@ -8,12 +8,7 @@ pub fn add(vals: &[DialVal], _: &mut Env) -> EvalResult {
     let mut sum = 0.0;
 
     for val in vals.iter() {
-        let num = match val {
-            DialVal::Int(i) => *i as f64,
-            DialVal::Float(f) => *f,
-            _ => return Err(EvalError::TypeError("non-numeric type specified".into())),
-        };
-
+        let num = val.try_as_number()?;
         sum += num;
     }
 
