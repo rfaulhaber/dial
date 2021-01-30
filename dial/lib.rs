@@ -32,22 +32,7 @@ pub fn read(input: String) -> ParseResult<Vec<DialVal>> {
 }
 
 pub fn eval(val: DialVal, env: &mut Env) -> EvalResult {
-    // match val {
-    //     DialVal::List(l) => {
-    //         if l.is_empty() {
-    //             Ok(DialVal::List(vec![]))
-    //         } else {
-    //             // we should have at least one item
-    //             let func = l.first().unwrap();
-    //         }
-    //     }
-    //     _ => eval_form(val, env)
-    // }
     match val {
-        DialVal::Sym(s) => env
-            .get_value(s.clone())
-            .clone()
-            .ok_or_else(|| EvalError::Undefined(format!("no such symbol {}", s).into())),
         DialVal::List(l) => {
             if l.is_empty() {
                 Ok(DialVal::List(vec![]))
@@ -220,6 +205,25 @@ pub fn eval(val: DialVal, env: &mut Env) -> EvalResult {
                 }
             }
         }
+        _ => eval_form(val, env),
+    }
+}
+
+fn eval_form(val: DialVal, env: &mut Env) -> EvalResult {
+    match val {
+        DialVal::Sym(s) => env
+            .get_value(s.clone())
+            .clone()
+            .ok_or_else(|| EvalError::Undefined(format!("no such symbol {}", s).into())),
+        DialVal::List(l) => {
+            let vals: Result<Vec<DialVal>, EvalError> =
+                l.iter().map(|v| eval(v.clone(), env)).collect();
+
+            match vals {
+                Ok(vs) => Ok(DialVal::List(vs)),
+                Err(e) => Err(e),
+            }
+        }
         DialVal::Vec(v) => {
             if v.is_empty() {
                 Ok(DialVal::Vec(vec![]))
@@ -233,12 +237,9 @@ pub fn eval(val: DialVal, env: &mut Env) -> EvalResult {
                 }
             }
         }
+        // DialVal::Hash(h) => todo!(),
         _ => Ok(val),
     }
-}
-
-fn eval_form(val: DialVal, env: &mut Env) -> EvalResult {
-    todo!();
 }
 
 pub fn print(val: EvalResult) -> String {
