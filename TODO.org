@@ -4,20 +4,20 @@ Informal roadmap for this project.
 
 * Tasks
 ** MAL steps
-*** [X] Step 3 :mal:
-*** [-] Step 4 :mal:
-*** [ ] Step 5 :mal:
-*** [ ] Step 6 :mal:
-*** [ ] Step 7 :mal:
-*** [ ] Step 8 :mal:
-*** [ ] Step 9 :mal:
+*** [X] Step 3
+*** [X] Step 4
+*** [-] Step 5
+*** [ ] Step 6
+*** [ ] Step 7
+*** [ ] Step 8
+*** [ ] Step 9
 ** Language features to implement
-*** [ ] Comments
+**** [ ] Comments
 - Syntax
   #+begin_src
   ; this is a comment
   #+end_src
-*** [ ] Ratio type
+**** [ ] Ratio type
 - Syntax
   #+begin_src
   22/7
@@ -32,16 +32,43 @@ Informal roadmap for this project.
   #+begin_src
   (denominator 22/7) ; => 7
   #+end_src
-*** [ ] Hash map
+**** [ ] Hash map
 - Syntax:
   #+begin_src
   { :foo bar :baz quux }
   #+end_src
 - =hash-map= function
-*** [ ] Variadic functions
+**** [ ] Variadic functions
 - Syntax
   #+begin_src
   (defn foo [bar &baz]
     (println bar baz))
   #+end_src
-*** [ ] Concurrency
+**** [ ] Lazy evaluation
+**** [ ] Concurrency
+**** [ ] Language runtime extensibility
+Advising functions, hooks
+**** [ ] Macros, hygienic macros, syntax
+See Racket
+**** [ ] Ring operator for functional composition
+#+begin_src
+(def operation (∘ abs +))
+(operation -22 -33) ; => 55
+#+end_src
+**** [ ] Type interfaces for generic programming
+=reduce= and =map= should work across =iterative= types, etc.
+**** [ ] Namespaces
+**** [ ] =match=
+Proposed syntax:
+#+begin_src
+(match val
+    (expr1) (val1)
+    (expr2) (val2)
+    ...
+    :_ (valn))
+#+end_src
+**** [ ] Rust FFI
+- Should be able to call unmangled Rust code directly.
+- Should be able to load shared objects
+**** [ ] LLVM compiler
+Should be able to be compiled to machine code via LLVM instead of bytecode.
