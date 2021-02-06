@@ -101,3 +101,22 @@ pub fn count(vals: &[DialVal], _e: &mut Env) -> EvalResult {
         None => Err(EvalError::ArityError(1)),
     }
 }
+
+pub fn eq(vals: &[DialVal], _e: &mut Env) -> EvalResult {
+    match vals.len() {
+        0 => Err(EvalError::ArityError(0)),
+        1 => Ok(DialVal::Bool(true)),
+        _ => {
+            let (first, rest) = vals.split_at(1);
+            let first = first.get(0).unwrap();
+
+            for val in rest {
+                if first != val {
+                    return Ok(DialVal::Bool(false));
+                }
+            }
+
+            Ok(DialVal::Bool(true))
+        }
+    }
+}

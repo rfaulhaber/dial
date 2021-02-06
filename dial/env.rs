@@ -75,6 +75,14 @@ impl Default for Env {
             },
         );
 
+        root.insert(
+            "=".into(),
+            DialVal::Builtin {
+                name: "=".into(),
+                func: builtin::eq,
+            },
+        );
+
         Env {
             symbol_map: RefCell::new(root),
             scope: None,
