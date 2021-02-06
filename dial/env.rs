@@ -122,4 +122,8 @@ impl Env {
             self.set_value(sym.clone(), val);
         }
     }
+
+    pub fn push_scope(&mut self, scope: Env) {
+        self.scope = Some(Rc::new(scope));
+    }
 }

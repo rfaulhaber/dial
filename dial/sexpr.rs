@@ -1,3 +1,5 @@
+use crate::Env;
+
 use super::builtin::BuiltinFunc;
 use super::EvalError;
 use num::rational::Rational64;
@@ -22,6 +24,7 @@ pub enum DialVal {
     Lambda {
         params: Vec<String>,
         body: Box<DialVal>,
+        env: Env,
     },
 
     // collections
