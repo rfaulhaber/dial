@@ -27,23 +27,41 @@ pub enum EvalError {
     InvalidArgumentError(String),
 }
 
+macro_rules! new_scope {
+    ($env:ident, $count:ident) => {
+        $env.new_scope();
+        $count = $count + 1;
+    };
+}
+
 pub fn read(input: String) -> ParseResult<Vec<DialVal>> {
     parse::parse_program(input)
 }
 
 pub fn eval(val: DialVal, env: &mut Env) -> EvalResult {
     let mut vals = vec![val];
+    let mut scopes_to_drop = 0;
 
-    loop {
+    let ret = 'eval: loop {
         let val = match vals.pop() {
             Some(v) => v,
-            None => return Ok(DialVal::Nil),
+            None => break Ok(DialVal::Nil),
+        };
+
+        match env.get_value("n".into()) {
+            Some(v) => println!("n {}", v),
+            None => (),
+        };
+
+        match env.get_value("acc".into()) {
+            Some(v) => println!("acc {}", v),
+            None => (),
         };
 
         match val {
             DialVal::List(l) => {
                 if l.is_empty() {
-                    return Ok(DialVal::List(vec![]));
+                    break Ok(DialVal::List(vec![]));
                 } else {
                     // TODO error handling
                     let (first, rest) = l.split_at(1);
@@ -55,50 +73,47 @@ pub fn eval(val: DialVal, env: &mut Env) -> EvalResult {
                         v if v == &DialVal::Sym("def".into()) => {
                             let sym = match rest.get(0) {
                                 Some(val) => val,
-                                None => return Err(EvalError::ArityError(0)), // TODO better error
+                                None => break Err(EvalError::ArityError(0)), // TODO better error
                             };
 
                             let val = match rest.get(1) {
                                 Some(val) => val,
-                                None => return Err(EvalError::ArityError(1)),
+                                None => break Err(EvalError::ArityError(1)),
                             }
                             .clone();
 
                             let val_res = eval(val, env)?;
 
-                            return match sym {
+                            match sym {
                                 DialVal::Sym(s) => {
                                     env.set_value(s.clone(), val_res.clone());
-                                    Ok(val_res)
+                                    break Ok(val_res);
                                 }
                                 _ => {
-                                    return Err(EvalError::InvalidArgumentError(
+                                    break Err(EvalError::InvalidArgumentError(
                                         "'def' requires binding to symbol".into(),
                                     ))
                                 }
-                            };
+                            }
                         }
                         v if v == &DialVal::Sym("let".into()) => {
-                            // TODO remove need for cloning
-                            let mut scope = Env::with_scope(env.clone());
-
                             let (list_sl, inner) = rest.split_at(1);
+                            new_scope!(env, scopes_to_drop);
 
                             // TODO error handling
-                            // TODO stop with all the cloning
                             match list_sl.get(0).unwrap().clone() {
                                 DialVal::List(l) => {
                                     for pair in l.into_iter().collect::<Vec<_>>().chunks(2) {
                                         let sym = pair.get(0).unwrap().clone();
                                         let val = pair.get(1).unwrap().clone();
-                                        let val_res = eval(val, &mut scope);
+                                        let val_res = eval(val, env);
 
                                         match sym {
                                             DialVal::Sym(s) => {
-                                                scope.set_value(s, val_res?);
+                                                env.set_value(s, val_res?);
                                             }
                                             _ => {
-                                                return Err(EvalError::TypeError(format!(
+                                                break 'eval Err(EvalError::TypeError(format!(
                                                     "expected symbol in let binding, found {}",
                                                     sym
                                                 )))
@@ -106,12 +121,11 @@ pub fn eval(val: DialVal, env: &mut Env) -> EvalResult {
                                         }
                                     }
 
-                                    env.push_scope(scope);
                                     vals.append(&mut Vec::from(inner));
-                                    continue;
+                                    continue 'eval;
                                 }
                                 _ => {
-                                    return Err(EvalError::InvalidArgumentError(format!(
+                                    break 'eval Err(EvalError::InvalidArgumentError(format!(
                                         "let binding expects a list of associations"
                                     )))
                                 }
@@ -123,24 +137,24 @@ pub fn eval(val: DialVal, env: &mut Env) -> EvalResult {
 
                             let cond = match rest.pop() {
                                 Some(v) => v,
-                                None => return Err(EvalError::ArityError(1)),
+                                None => break 'eval Err(EvalError::ArityError(1)),
                             };
 
                             let cond_result = eval(cond, env)?;
 
                             let if_true = match rest.pop() {
                                 Some(e) => e,
-                                None => return Err(EvalError::ArityError(2)),
+                                None => break 'eval Err(EvalError::ArityError(2)),
                             };
 
                             // TODO assert this is last item
                             let if_false = match rest.pop() {
                                 Some(e) => e,
-                                None => return Err(EvalError::ArityError(3)),
+                                None => break 'eval Err(EvalError::ArityError(3)),
                             };
 
                             if rest.len() > 0 {
-                                return Err(EvalError::ArityError(4));
+                                break 'eval Err(EvalError::ArityError(4));
                             }
 
                             match cond_result {
@@ -150,7 +164,7 @@ pub fn eval(val: DialVal, env: &mut Env) -> EvalResult {
                                 _ => vals.push(if_true),
                             };
 
-                            continue;
+                            continue 'eval;
                         }
                         v if v == &DialVal::Sym("fn".into()) => {
                             let fn_args = match rest.get(0) {
@@ -162,7 +176,7 @@ pub fn eval(val: DialVal, env: &mut Env) -> EvalResult {
                                             match arg {
                                                 DialVal::Sym(s) => args_sym.push(s.clone()),
                                                 _ => {
-                                                    return Err(EvalError::TypeError(
+                                                    break 'eval Err(EvalError::TypeError(
                                                         "symbol".into(),
                                                     ))
                                                 }
@@ -171,17 +185,17 @@ pub fn eval(val: DialVal, env: &mut Env) -> EvalResult {
 
                                         args_sym
                                     }
-                                    _ => return Err(EvalError::TypeError("list".into())),
+                                    _ => break 'eval Err(EvalError::TypeError("list".into())),
                                 },
-                                None => return Err(EvalError::ArityError(3)),
+                                None => break 'eval Err(EvalError::ArityError(3)),
                             };
 
                             let fn_body = match rest.get(1) {
                                 Some(body) => body.clone(),
-                                None => return Err(EvalError::ArityError(3)),
+                                None => break 'eval Err(EvalError::ArityError(3)),
                             };
 
-                            return Ok(DialVal::Lambda {
+                            break 'eval Ok(DialVal::Lambda {
                                 params: fn_args,
                                 body: Box::new(fn_body),
                                 env: env.clone(),
@@ -189,7 +203,7 @@ pub fn eval(val: DialVal, env: &mut Env) -> EvalResult {
                         }
                         v if v == &DialVal::Sym("do".into()) => {
                             if rest.is_empty() {
-                                return Ok(DialVal::Nil);
+                                break 'eval Ok(DialVal::Nil);
                             }
 
                             let (head, tail) = rest.split_at(rest.len() - 1);
@@ -200,29 +214,28 @@ pub fn eval(val: DialVal, env: &mut Env) -> EvalResult {
                                 Ok(_) => {
                                     vals.push(tail.first().unwrap().clone());
                                 }
-                                Err(e) => return Err(e),
+                                Err(e) => break 'eval Err(e),
                             };
                         }
                         _ => {
                             let rest: Result<Vec<DialVal>, EvalError> =
                                 rest.iter().map(|val| eval(val.clone(), env)).collect();
 
-                            return match eval(first.clone(), env) {
+                            break 'eval match eval(first.clone(), env) {
                                 Ok(DialVal::Builtin { func, .. }) => func(rest?.as_slice(), env),
-                                Ok(DialVal::Lambda {
-                                    params,
-                                    body,
-                                    env: lambda_env,
-                                }) => {
+                                Ok(DialVal::Lambda { params, body, .. }) => {
                                     let args = rest?;
+                                    new_scope!(env, scopes_to_drop);
 
                                     if params.len() != args.len() {
-                                        return Err(EvalError::ArityError(params.len()));
+                                        break 'eval Err(EvalError::ArityError(params.len()));
                                     }
 
-                                    lambda_env.bind(params, args);
+                                    env.bind(params, args);
 
-                                    return eval(*body, &mut lambda_env.clone());
+                                    vals.push(*body);
+
+                                    continue 'eval;
                                 }
                                 _ => Err(EvalError::TypeError(format!(
                                     "{} is not a function",
@@ -233,9 +246,13 @@ pub fn eval(val: DialVal, env: &mut Env) -> EvalResult {
                     }
                 }
             }
-            _ => return eval_form(val, env),
+            _ => break 'eval eval_form(val, env),
         }
-    }
+    };
+
+    env.drop_scopes(scopes_to_drop);
+
+    ret
 }
 
 fn eval_form(val: DialVal, env: &mut Env) -> EvalResult {
