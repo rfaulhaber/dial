@@ -48,15 +48,7 @@ pub fn eval(val: DialVal, env: &mut Env) -> EvalResult {
             None => break Ok(DialVal::Nil),
         };
 
-        match env.get_value("n".into()) {
-            Some(v) => println!("n {}", v),
-            None => (),
-        };
-
-        match env.get_value("acc".into()) {
-            Some(v) => println!("acc {}", v),
-            None => (),
-        };
+        println!("val {:?}", val);
 
         match val {
             DialVal::List(l) => {
@@ -141,6 +133,8 @@ pub fn eval(val: DialVal, env: &mut Env) -> EvalResult {
                             };
 
                             let cond_result = eval(cond, env)?;
+
+                            println!("cond_result {:?}", cond_result);
 
                             let if_true = match rest.pop() {
                                 Some(e) => e,
@@ -252,6 +246,8 @@ pub fn eval(val: DialVal, env: &mut Env) -> EvalResult {
 
     env.drop_scopes(scopes_to_drop);
 
+    println!("ret {:?}", ret);
+
     ret
 }
 
@@ -320,12 +316,12 @@ mod mal_tests {
             results,
             vec![
                 Ok(DialVal::Int(1)),
-                Ok(DialVal::Float(6.0)),
-                Ok(DialVal::Float(0.0)),
+                Ok(DialVal::Int(6)),
+                Ok(DialVal::Int(0)),
                 Ok(DialVal::Float(0.125)),
-                Ok(DialVal::Float(1.0 / 6.0)),
-                Ok(DialVal::Float(5.0)),
-                Ok(DialVal::Float(14.0)),
+                Ok(DialVal::Int(1 / 6)),
+                Ok(DialVal::Int(5)),
+                Ok(DialVal::Int(14)),
             ]
         )
     }
@@ -365,8 +361,8 @@ mod mal_tests {
             vec![
                 Ok(6.into()),
                 Ok(6.into()),
-                Ok(8.0.into()),
-                Ok(14.0.into()),
+                Ok(8.into()),
+                Ok(14.into()),
                 Ok(2.into()),
                 Err(EvalError::Undefined("no such symbol c".into()))
             ]
@@ -415,10 +411,7 @@ mod mal_tests {
             .map(|input| eval(read(input.to_string()).unwrap().pop().unwrap(), &mut env))
             .collect();
 
-        assert_eq!(
-            results,
-            vec![Ok(4.into()), Ok(7.0.into()), Ok(246.0.into())]
-        );
+        assert_eq!(results, vec![Ok(4.into()), Ok(7.into()), Ok(246.into())]);
     }
 
     #[test]
@@ -436,7 +429,7 @@ mod mal_tests {
             .map(|input| eval(read(input.to_string()).unwrap().pop().unwrap(), &mut env))
             .collect();
 
-        assert_eq!(results, vec![Ok(7.into()), Ok(11.0.into()), Ok(5.0.into())]);
+        assert_eq!(results, vec![Ok(7.into()), Ok(11.into()), Ok(5.into())]);
     }
 
     #[test]

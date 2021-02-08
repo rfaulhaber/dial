@@ -206,12 +206,22 @@ impl DialVal {
         matches!(self, DialVal::List(_))
     }
 
-    pub fn try_as_number(&self) -> Result<f64, EvalError> {
+    pub fn try_as_float(&self) -> Result<f64, EvalError> {
         match self {
-            DialVal::Int(i) => Ok(*i as f64),
             DialVal::Float(f) => Ok(*f),
+            DialVal::Int(i) => Ok(*i as f64),
             _ => Err(EvalError::TypeError(format!(
-                "non-numeric type specified: {}",
+                "non-float type specified: {}",
+                self
+            ))),
+        }
+    }
+
+    pub fn try_as_int(&self) -> Result<i64, EvalError> {
+        match self {
+            DialVal::Int(i) => Ok(*i),
+            _ => Err(EvalError::TypeError(format!(
+                "non-int type specified: {}",
                 self
             ))),
         }

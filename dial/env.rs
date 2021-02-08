@@ -44,7 +44,7 @@ impl Scope {
 
 #[derive(Debug, Clone)]
 pub struct Env {
-    stack: Vec<Scope>,
+    pub(crate) stack: Vec<Scope>,
 }
 
 impl Default for Env {
