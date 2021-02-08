@@ -48,8 +48,6 @@ pub fn eval(val: DialVal, env: &mut Env) -> EvalResult {
             None => break Ok(DialVal::Nil),
         };
 
-        println!("val {:?}", val);
-
         match val {
             DialVal::List(l) => {
                 if l.is_empty() {
@@ -133,8 +131,6 @@ pub fn eval(val: DialVal, env: &mut Env) -> EvalResult {
                             };
 
                             let cond_result = eval(cond, env)?;
-
-                            println!("cond_result {:?}", cond_result);
 
                             let if_true = match rest.pop() {
                                 Some(e) => e,
@@ -245,8 +241,6 @@ pub fn eval(val: DialVal, env: &mut Env) -> EvalResult {
     };
 
     env.drop_scopes(scopes_to_drop);
-
-    println!("ret {:?}", ret);
 
     ret
 }
@@ -492,15 +486,18 @@ mod mal_tests {
     }
 
     #[test]
+    #[ignore]
+    // this test takes a long time to run!
     fn step_5_tco() {
         let inputs = vec![
             "(do (def sum2 (fn (n acc) (if (= n 0) acc (sum2 (- n 1) (+ n acc))))) (sum2 10 0))",
             "(do (def sum2 (fn (n acc) (if (= n 0) acc (sum2 (- n 1) (+ n acc))))) (sum2 10000 0))",
+            "(do (def foo (fn (n) (if (= n 0) 0 (bar (- n 1))))) (def bar (fn (n) (if (= n 0) 0 (foo (- n 1))))) (foo 10000))"
         ];
 
         let mut env = Env::default();
 
-        let expected = vec![Ok(55.into()), Ok(50005000.into())];
+        let expected = vec![Ok(55.into()), Ok(50005000.into()), Ok(0.into())];
 
         let results: Vec<EvalResult> = inputs
             .iter()
