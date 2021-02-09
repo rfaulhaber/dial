@@ -29,11 +29,11 @@ pub fn repl() -> Result<()> {
                         for r in res {
                             match r {
                                 Ok(out) => println!("{}", out),
-                                Err(out) => println!("{:?}", out),
+                                Err(out) => println!("{}", out),
                             }
                         }
                     }
-                    Err(out) => println!("{:?}", out),
+                    Err(out) => println!("{}", out),
                 }
             }
             Err(ReadlineError::Interrupted) => {

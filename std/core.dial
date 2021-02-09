@@ -1,0 +1,3 @@
+(def not
+     (fn (p)
+         (if p false true)))

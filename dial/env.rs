@@ -60,6 +60,12 @@ impl Default for Env {
         define_builtin!("empty?", builtin::is_empty, root);
         define_builtin!("count", builtin::count, root);
         define_builtin!("=", builtin::eq, root);
+        define_builtin!("int?", builtin::is_int, root);
+        define_builtin!("float?", builtin::is_float, root);
+        define_builtin!("string?", builtin::is_string, root);
+        define_builtin!("ratio?", builtin::is_ratio, root);
+        define_builtin!("keyword?", builtin::is_keyword, root);
+        define_builtin!("symbol?", builtin::is_symbol, root);
 
         let scope = Scope {
             symbol_map: RefCell::new(root),

@@ -1,9 +1,7 @@
 use crate::Env;
 
-use super::builtin::BuiltinFunc;
-use super::EvalError;
+use super::{builtin::BuiltinFunc, EvalError};
 use num::rational::Rational64;
-use num::Num;
 use std::cmp::PartialEq;
 use std::fmt::{self, Debug, Display};
 
@@ -236,6 +234,24 @@ impl DialVal {
             }
             i => DialValIter { items: vec![i] },
         }
+    }
+
+    pub fn display_type(&self) -> String {
+        match self {
+            DialVal::Nil => "nil",
+            DialVal::Bool(_) => "bool",
+            DialVal::Int(_) => "int",
+            DialVal::Float(_) => "float",
+            DialVal::Str(_) => "string",
+            DialVal::Sym(_) => "symbol",
+            DialVal::Keyword(_) => "keyword",
+            DialVal::Ratio(_) => "ratio",
+            DialVal::Builtin { .. } => "builtin",
+            DialVal::Lambda { .. } => "fn",
+            DialVal::List(_) => "list",
+            DialVal::Vec(_) => "vector",
+        }
+        .into()
     }
 }
 

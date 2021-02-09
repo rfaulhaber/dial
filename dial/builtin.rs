@@ -1,6 +1,28 @@
 use super::sexpr::*;
 use super::{EvalError, EvalResult};
 use crate::Env;
+use num::rational::Rational64;
+
+macro_rules! assert_arity {
+    ($list:ident, $arity:literal) => {
+        if $list.len() > $arity {
+            return Err(EvalError::ArityError($arity));
+        }
+    };
+}
+
+macro_rules! define_is_type {
+    ($name:ident, $ty:ident) => {
+        pub fn $name(vals: &[DialVal], _e: &mut Env) -> EvalResult {
+            assert_arity!(vals, 1);
+
+            match vals.get(0).unwrap() {
+                DialVal::$ty(_) => Ok(true.into()),
+                _ => Ok(false.into()),
+            }
+        }
+    };
+}
 
 pub type BuiltinFunc = fn(&[DialVal], &mut Env) -> EvalResult;
 
@@ -117,7 +139,13 @@ pub fn div(vals: &[DialVal], e: &mut Env) -> EvalResult {
                     ));
                 }
 
-                Ok((first_num / prod).into())
+                let ratio = Rational64::new(first_num, prod);
+
+                if ratio.is_integer() {
+                    Ok(DialVal::Int(ratio.to_integer()))
+                } else {
+                    Ok(DialVal::Ratio(ratio))
+                }
             }
         }
     }
@@ -176,6 +204,13 @@ pub fn eq(vals: &[DialVal], _e: &mut Env) -> EvalResult {
         }
     }
 }
+
+define_is_type!(is_int, Int);
+define_is_type!(is_float, Float);
+define_is_type!(is_string, Str);
+define_is_type!(is_ratio, Ratio);
+define_is_type!(is_keyword, Keyword);
+define_is_type!(is_symbol, Sym);
 
 fn has_float(vals: &[DialVal]) -> bool {
     for val in vals {
