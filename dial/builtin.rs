@@ -155,13 +155,6 @@ pub fn list(vals: &[DialVal], _e: &mut Env) -> EvalResult {
     Ok(DialVal::List(Vec::from(vals)))
 }
 
-pub fn is_list(vals: &[DialVal], _e: &mut Env) -> EvalResult {
-    match vals.first() {
-        Some(&DialVal::List(_)) => Ok(true.into()),
-        _ => Ok(false.into()),
-    }
-}
-
 pub fn is_empty(vals: &[DialVal], _e: &mut Env) -> EvalResult {
     match vals.first() {
         Some(l) => match l {
@@ -211,6 +204,7 @@ define_is_type!(is_string, Str);
 define_is_type!(is_ratio, Ratio);
 define_is_type!(is_keyword, Keyword);
 define_is_type!(is_symbol, Sym);
+define_is_type!(is_list, List);
 
 fn has_float(vals: &[DialVal]) -> bool {
     for val in vals {
