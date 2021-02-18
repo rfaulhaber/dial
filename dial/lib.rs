@@ -285,6 +285,7 @@ pub fn print(val: EvalResult) -> String {
 #[cfg(test)]
 mod mal_tests {
     use super::*;
+    use num::rational::Rational64;
     use pretty_assertions::assert_eq;
 
     #[test]
@@ -313,7 +314,7 @@ mod mal_tests {
                 Ok(DialVal::Int(6)),
                 Ok(DialVal::Int(0)),
                 Ok(DialVal::Float(0.125)),
-                Ok(DialVal::Int(1 / 6)),
+                Ok(DialVal::Ratio(Rational64::new(1, 6))),
                 Ok(DialVal::Int(5)),
                 Ok(DialVal::Int(14)),
             ]

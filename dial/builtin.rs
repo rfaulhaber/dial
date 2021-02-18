@@ -1,7 +1,8 @@
 use super::sexpr::*;
 use super::{EvalError, EvalResult};
 use crate::Env;
-use num::rational::Rational64;
+use num::rational::{Ratio, Rational64};
+use std::ops::{Add, Div, Mul, Sub};
 
 macro_rules! assert_arity {
     ($list:ident, $arity:literal) => {
@@ -24,7 +25,53 @@ macro_rules! define_is_type {
     };
 }
 
+macro_rules! assert_all_numbers {
+    ($list:ident) => {
+        if let Some(val) find_non_number($list) {
+            return Err(EvalError::TypeError("TODO wrong type".into()));
+        }
+    }
+}
+
 pub type BuiltinFunc = fn(&[DialVal], &mut Env) -> EvalResult;
+
+enum DialNumber {
+    Int(i64),
+    Float(f64),
+    Ratio(Rational64),
+}
+
+impl Into<f64> for DialNumber {
+    fn into(self) -> f64 {
+        match self {
+            DialNumber::Int(i) => i as f64,
+            DialNumber::Float(f) => f,
+            // TODO this may be a bad idea...
+            DialNumber::Ratio(r) => (*r.numer() as f64) / (*r.denom() as f64),
+        }
+    }
+}
+
+impl Into<i64> for DialNumber {
+    fn into(self) -> i64 {
+        match self {
+            DialNumber::Int(i) => i,
+            DialNumber::Float(f) => f as i64,
+            DialNumber::Ratio(r) => r.to_integer(),
+        }
+    }
+}
+
+impl Into<Rational64> for DialNumber {
+    fn into(self) -> Rational64 {
+        match self {
+            DialNumber::Int(i) => Rational64::from(i),
+            // TODO fix
+            DialNumber::Float(f) => Rational64::from(f as i64),
+            DialNumber::Ratio(r) => r,
+        }
+    }
+}
 
 pub fn add(vals: &[DialVal], _: &mut Env) -> EvalResult {
     if has_float(vals) {
@@ -214,4 +261,31 @@ fn has_float(vals: &[DialVal]) -> bool {
     }
 
     false
+}
+
+fn has_ratio(vals: &[DialVal]) -> bool {
+    for val in vals {
+        if matches!(val, DialVal::Ratio(_)) {
+            return true;
+        }
+    }
+
+    false
+}
+
+fn get_numbers(vals: &[DialVal]) -> Vec<DialNumber> {
+    vals.iter()
+        .map(|val| match val {
+            DialVal::Int(i) => DialNumber::Int(*i),
+            DialVal::Float(f) => DialNumber::Float(*f),
+            DialVal::Ratio(r) => DialNumber::Ratio(*r),
+            _ => unreachable!(),
+        })
+        .collect()
+}
+
+fn find_non_number(vals: &[DialVal]) -> Option<DialVal> {
+    vals.iter()
+        .find(|val| !matches!(val, DialVal::Int(_) | DialVal::Ratio(_) | DialVal::Float(_)))
+        .map(|val| val.clone())
 }
