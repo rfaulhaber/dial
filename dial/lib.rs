@@ -76,7 +76,7 @@ pub fn eval(val: DialVal, env: &mut Env) -> EvalResult {
 
                             match sym {
                                 DialVal::Sym(s) => {
-                                    env.set_value(s.clone(), val_res.clone());
+                                    env.def_value(s.clone(), val_res.clone());
                                     break Ok(val_res);
                                 }
                                 _ => {
@@ -288,6 +288,15 @@ mod mal_tests {
     use num::rational::Rational64;
     use pretty_assertions::assert_eq;
 
+    macro_rules! assert_expr {
+        ($expr:literal, $expected:literal) => {
+            let mut env = Env::default();
+            let result = eval(parse::parse_sexpr($expr).unwrap(), &mut env);
+
+            assert_eq!($result, $expected, "Expr: {}", $expr);
+        };
+    }
+
     #[test]
     fn step_2_eval() {
         let inputs = vec![
@@ -487,6 +496,45 @@ mod mal_tests {
     }
 
     #[test]
+    fn step_4_closure() {
+        let inputs = vec![
+            "( (fn (a b) (+ b a)) 3 4)",
+            "( (fn () 4) )",
+            "( (fn (f x) (f x)) (fn (a) (+ 1 a)) 7)",
+            "( ( (fn (a) (fn (b) (+ a b))) 5) 7)",
+            r#"(do
+                (def gen-plus5 (fn () (fn (b) (+ 5 b))))
+                (def plus5 (gen-plus5))
+                (plus5 7))"#,
+            r#"(do
+                (def gen-plusX (fn (x) (fn (b) (+ x b))))
+                (def plus7 (gen-plusX 7))
+                (plus7 8))"#,
+            r#"(do
+                (def gen-plusX (fn (x) (fn (b) (+ x b))))
+                (def plus7 (gen-plusX 7))
+                (plus7 8)
+                (plus7 8))"#,
+        ];
+
+        let mut env = Env::default();
+
+        let expected = vec![
+            Ok(DialVal::Int(7)),
+            Ok(DialVal::Int(4)),
+            Ok(DialVal::Int(8)),
+            Ok(DialVal::Int(12)),
+            Ok(DialVal::Int(12)),
+            Ok(DialVal::Int(15)),
+            Ok(DialVal::Int(15)),
+        ];
+
+        let results = map_results(inputs, &mut env);
+
+        assert_eq!(results, expected);
+    }
+
+    #[test]
     #[ignore]
     // this test takes a long time to run!
     fn step_5_tco() {
@@ -507,4 +555,11 @@ mod mal_tests {
 
         assert_eq!(results, expected);
     }
+}
+
+fn map_results(inputs: Vec<&str>, env: &mut Env) -> Vec<EvalResult> {
+    inputs
+        .iter()
+        .map(|input| eval(read(input.to_string()).unwrap().pop().unwrap(), env))
+        .collect()
 }
