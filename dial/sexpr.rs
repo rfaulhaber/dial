@@ -5,6 +5,17 @@ use num::rational::Rational64;
 use std::cmp::PartialEq;
 use std::fmt::{self, Debug, Display};
 
+macro_rules! auto_eq_list {
+    ($self:ident, $other:ident, $($p:path),+) => {
+        match ($self, $other) {
+            $(
+                ($p(left), $p(right)) => left == right,
+            )+
+            _ => false,
+        }
+    }
+}
+
 #[derive(Clone)]
 pub enum DialVal {
     Nil,
@@ -22,6 +33,7 @@ pub enum DialVal {
     Lambda {
         params: Vec<String>,
         body: Box<DialVal>,
+        // TODO refactor to be Rc<Env>
         env: Env,
     },
 
@@ -114,17 +126,6 @@ impl Debug for DialVal {
             DialVal::Lambda { .. } => write!(f, "#<function>"),
         }
     }
-}
-
-macro_rules! auto_eq_list {
-	($self:ident, $other:ident, $($p:path),+) => {
-		match ($self, $other) {
-			$(
-				($p(left), $p(right)) => left == right,
-			)+
-			_ => false,
-		}
-	}
 }
 
 impl PartialEq for DialVal {

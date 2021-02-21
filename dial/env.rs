@@ -1,6 +1,8 @@
 use super::{builtin, DialVal};
 use std::{cell::RefCell, collections::HashMap};
 
+// TODO refactor to use Rc
+
 macro_rules! define_builtin {
     ($name:literal, $fn:path, $env:ident) => {
         $env.insert(
