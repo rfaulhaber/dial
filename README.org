@@ -1,0 +1,8 @@
+#+TITLE: Dial
+
+#+begin_quote
+*Dial Is A Lisp*
+#+end_quote
+
+This is my attempt at a custom Lisp interpreter (and later, compiler). This is
+very much a work in progress, watch this space!
